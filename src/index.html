@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>EloCoach</title>
+    <style>
+      body { margin: 0; padding: 10px; font-family: sans-serif; overflow: hidden; }
+      .coach-hud {
+        background: rgba(1, 10, 19, 0.85); /* Azul escuro da Riot */
+        border: 1px solid #c8aa6e;        /* Borda dourada hextech */
+        color: #f0e6d2;
+        padding: 10px;
+        text-align: center;
+        border-radius: 4px;
+      }
+      .timer { font-size: 24px; font-weight: bold; color: #00ffcc; }
+    </style>
+  </head>
+  <body>
+    <div class="coach-hud">
+      <div style="font-size: 10px; color: #a09b8c; margin-bottom: 5px;">PRÓXIMA WAVE</div>
+      <div id="wave-timer" class="timer">--:--</div>
+      <div id="game-status" style="font-size: 9px; margin-top: 5px;">LoL não detectado</div>
+    </div>
+  </body>
+</html>
