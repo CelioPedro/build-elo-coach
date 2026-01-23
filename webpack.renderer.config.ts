@@ -16,4 +16,7 @@ export const rendererConfig: Configuration = {
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
   },
+  externals: {
+    electron: 'commonjs electron',
+  },
 };

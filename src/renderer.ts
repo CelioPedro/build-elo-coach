@@ -1,33 +1,71 @@
-/**
- * This file will automatically be loaded by webpack and run in the "renderer" context.
- * To learn more about the differences between the "main" and the "renderer" context in
- * Electron, visit:
- *
- * https://electronjs.org/docs/latest/tutorial/process-model
- *
- * By default, Node.js integration in this file is disabled. When enabling Node.js integration
- * in a renderer process, please be aware of potential security implications. You can read
- * more about security risks here:
- *
- * https://electronjs.org/docs/tutorial/security
- *
- * To enable Node.js integration in this file, open up `main.js` and enable the `nodeIntegration`
- * flag:
- *
- * ```
- *  // Create the browser window.
- *  mainWindow = new BrowserWindow({
- *    width: 800,
- *    height: 600,
- *    webPreferences: {
- *      nodeIntegration: true
- *    }
- *  });
- * ```
- */
-
 import './index.css';
 
-console.log(
-  '👋 This message is being logged by "renderer.js", included via webpack',
-);
+console.log('EloCoach renderer iniciado');
+
+// Elementos da UI
+const waveTimer = document.getElementById('wave-timer') as HTMLElement;
+const gankAlert = document.getElementById('gank-alert') as HTMLElement;
+const gameStatus = document.getElementById('game-status') as HTMLElement;
+const junglerInfo = document.getElementById('jungler-info') as HTMLElement;
+
+// Estado do jogo
+let isGameActive = false;
+
+// Função para atualizar UI com dados do jogo
+function updateUI(data: {
+  gameState: string;
+  gameTime: number | null;
+  waveTime: string;
+  isSiege: boolean;
+  gankRisk: string;
+  junglerName: string;
+}) {
+  const { gameState, gameTime, waveTime, isSiege, gankRisk, junglerName } = data;
+
+  junglerInfo.textContent = `Jungler: ${junglerName}`;
+
+  if (gameState === 'in_game' && gameTime !== null) {
+    if (!isGameActive) {
+      console.log('🎮 Jogo detectado!');
+      isGameActive = true;
+    }
+
+    waveTimer.textContent = waveTime;
+    waveTimer.style.color = isSiege ? '#ff6b35' : '#00ffcc'; // Laranja para Siege, ciano normal
+
+    gankAlert.textContent = gankRisk;
+    gankAlert.style.color = gankRisk === 'Perigo' ? '#ff4444' : gankRisk === 'Atenção' ? '#ffaa00' : '#44ff44';
+
+    gameStatus.textContent = `Jogo ativo - ${Math.floor(gameTime)}s`;
+  } else {
+    if (isGameActive) {
+      console.log('❌ Jogo encerrado');
+      isGameActive = false;
+    }
+
+    waveTimer.textContent = waveTime;
+    waveTimer.style.color = '#00ffcc';
+    gankAlert.textContent = gankRisk;
+    gankAlert.style.color = '#44ff44';
+
+    if (gameState === 'loading') {
+      gameStatus.textContent = 'Carregando partida...';
+    } else if (gameState === 'not_active') {
+      gameStatus.textContent = 'Aguardando jogo';
+    } else {
+      gameStatus.textContent = 'Resumo pós-jogo';
+    }
+  }
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 EloCoach inicializado');
+
+  // Escutar atualizações do main process
+  const { ipcRenderer } = require('electron');
+  ipcRenderer.on('game-update', (event: any, data: any) => {
+    console.log('Recebido game-update:', data);
+    updateUI(data);
+  });
+});
