@@ -32,9 +32,9 @@ function updateUI(data: {
     waveTimer.style.color = isSiege ? '#ff6b35' : '#00ffcc'; // Laranja para Siege, ciano normal
 
     gankAlert.textContent = gankRisk;
-    gankAlert.style.color = gankRisk === 'Perigo' ? '#ff4444' : gankRisk === 'Atenção' ? '#ffaa00' : '#44ff44';
+    gankAlert.className = `alert ${gankRisk.toLowerCase()}`;
 
-    gameStatus.textContent = `Jogo ativo - ${Math.floor(gameTime)}s`;
+    gameStatus.textContent = `Jogo ativo - ${Math.floor(gameTime / 60)}:${(gameTime % 60).toString().padStart(2, '0')}`;
   } else {
     if (isGameActive) {
       console.log('❌ Jogo encerrado');
@@ -44,7 +44,7 @@ function updateUI(data: {
     waveTimer.textContent = waveTime;
     waveTimer.style.color = '#00ffcc';
     gankAlert.textContent = gankRisk;
-    gankAlert.style.color = '#44ff44';
+    gankAlert.className = 'alert seguro';
 
     if (gameState === 'loading') {
       gameStatus.textContent = 'Carregando partida...';

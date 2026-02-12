@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { RiotProvider } from './providers/riotProvider';
+import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
+import { TacticalEngine } from './logic/tacticalEngine';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -10,7 +12,7 @@ declare global {
 }
 
 let mainWindow: BrowserWindow;
-let riotProvider: RiotProvider;
+let provider: RiotProvider | MockProvider;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
 let gameUpdateInterval: NodeJS.Timeout | null = null;
@@ -19,8 +21,13 @@ let consecutiveErrors = 0;
 // Função para criar a janela principal
 function createMainWindow(): void {
   mainWindow = new BrowserWindow({
-    height: 600,
-    width: 800,
+    width: 1920,
+    height: 1080,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -31,8 +38,9 @@ function createMainWindow(): void {
   console.log('MAIN_WINDOW_WEBPACK_ENTRY:', MAIN_WINDOW_WEBPACK_ENTRY);
   console.log('MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY:', MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY);
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  mainWindow.show();
-  mainWindow.focus();
+
+  // Configurar click-through
+  mainWindow.setIgnoreMouseEvents(true);
 
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
@@ -53,7 +61,8 @@ function createMainWindow(): void {
 
 // Inicialização da aplicação
 app.on('ready', () => {
-  riotProvider = new RiotProvider();
+  // Use mock provider for testing
+  provider = new MockProvider();
   junglerTracker = new JunglerTracker();
   gankPredictor = new GankPredictor();
 
@@ -80,18 +89,33 @@ app.on('activate', () => {
 function startGameMonitoring(): void {
   gameUpdateInterval = setInterval(async () => {
     try {
-      const gameState = await riotProvider.getGameState();
+      const gameState = await provider.getGameState();
+      const gameTime = await provider.getGameTime();
 
-      if (gameState === 'in_game') {
-        const players = await riotProvider.getPlayerList();
+      let waveTime = '--:--';
+      let isSiege = false;
+      let gankRisk: 'Seguro' | 'Atenção' | 'Perigo' = 'Seguro';
+      let junglerName = 'Desconhecido';
+
+      if (gameState === 'in_game' && gameTime !== null) {
+        const players = await provider.getPlayerList();
         junglerTracker.updateJunglerState(players);
 
         const junglerState = junglerTracker.getJunglerState();
         if (junglerState) {
+          junglerName = junglerState.championName;
           const gankAlerts = gankPredictor.predictGanks(junglerState);
-          // TODO: Enviar alertas para a interface
-          console.log('Gank alerts:', gankAlerts);
+          if (gankAlerts.length > 0) {
+            const highestRisk = gankAlerts.reduce((max, alert) =>
+              alert.risk === 'high' ? alert : max.risk === 'high' ? max : alert
+            );
+            gankRisk = highestRisk.risk === 'high' ? 'Perigo' : highestRisk.risk === 'medium' ? 'Atenção' : 'Seguro';
+          }
         }
+
+        const waveInfo = TacticalEngine.calculateNextWave(gameTime);
+        waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
+        isSiege = waveInfo.isSiege;
 
         consecutiveErrors = 0;
       } else {
@@ -101,6 +125,18 @@ function startGameMonitoring(): void {
           clearInterval(gameUpdateInterval!);
           gameUpdateInterval = null;
         }
+      }
+
+      // Enviar dados para a interface
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('game-update', {
+          gameState,
+          gameTime,
+          waveTime,
+          isSiege,
+          gankRisk,
+          junglerName
+        });
       }
     } catch (error) {
       console.error('Erro no monitoramento:', error);

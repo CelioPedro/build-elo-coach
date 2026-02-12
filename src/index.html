@@ -4,25 +4,80 @@
     <meta charset="UTF-8" />
     <title>EloCoach</title>
     <style>
-      body { margin: 0; padding: 10px; font-family: sans-serif; overflow: hidden; }
-      .coach-hud {
-        background: rgba(1, 10, 19, 0.85); /* Azul escuro da Riot */
-        border: 1px solid #c8aa6e;        /* Borda dourada hextech */
-        color: #f0e6d2;
-        padding: 10px;
-        text-align: center;
-        border-radius: 4px;
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', sans-serif;
+        overflow: hidden;
+        background: transparent;
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 100vh;
+        pointer-events: none;
       }
-      .timer { font-size: 24px; font-weight: bold; color: #00ffcc; }
+      .coach-hud {
+        background: rgba(1, 10, 19, 0.9);
+        border: 2px solid #c8aa6e;
+        border-radius: 8px;
+        color: #f0e6d2;
+        padding: 15px;
+        margin: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+      }
+      .section {
+        margin-bottom: 15px;
+        text-align: center;
+      }
+      .label {
+        font-size: 10px;
+        color: #a09b8c;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .timer {
+        font-size: 28px;
+        font-weight: bold;
+        color: #00ffcc;
+        font-family: 'Courier New', monospace;
+      }
+      .alert {
+        font-size: 12px;
+        font-weight: bold;
+        padding: 5px 10px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+      .alert.seguro { background: rgba(68, 255, 68, 0.2); color: #44ff44; }
+      .alert.atencao { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
+      .alert.perigo { background: rgba(255, 68, 68, 0.2); color: #ff4444; }
+      .status {
+        font-size: 9px;
+        color: #a09b8c;
+        margin-top: 10px;
+      }
+      .jungler {
+        font-size: 9px;
+        color: #c8aa6e;
+        margin-top: 5px;
+      }
     </style>
   </head>
   <body>
     <div class="coach-hud">
-      <div style="font-size: 10px; color: #a09b8c; margin-bottom: 5px;">PRÓXIMA WAVE</div>
-      <div id="wave-timer" class="timer">--:--</div>
-      <div id="gank-alert" style="font-size: 9px; margin-top: 5px; font-weight: bold;">Seguro</div>
-      <div id="game-status" style="font-size: 8px; margin-top: 2px; color: #a09b8c;">LoL não detectado</div>
-      <div id="jungler-info" style="font-size: 8px; margin-top: 2px; color: #a09b8c;">Jungler: Desconhecido</div>
+      <div class="section">
+        <div class="label">Próxima Wave</div>
+        <div id="wave-timer" class="timer">--:--</div>
+      </div>
+      <div class="section">
+        <div class="label">Risco de Gank</div>
+        <div id="gank-alert" class="alert seguro">Seguro</div>
+      </div>
+      <div id="game-status" class="status">LoL não detectado</div>
+      <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
     </div>
   </body>
 </html>
