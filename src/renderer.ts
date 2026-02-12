@@ -1,5 +1,3 @@
-import './index.css';
-
 console.log('EloCoach renderer iniciado');
 
 // Elementos da UI
@@ -62,9 +60,8 @@ function updateUI(data: {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EloCoach inicializado');
 
-  // Escutar atualizações do main process
-  const { ipcRenderer } = require('electron');
-  ipcRenderer.on('game-update', (event: any, data: any) => {
+  // Escutar atualizações do main process via preload
+  (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
     console.log('Recebido game-update:', data);
     updateUI(data);
   });

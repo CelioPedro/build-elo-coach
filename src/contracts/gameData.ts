@@ -1,10 +1,12 @@
-export interface Player {
+import { Position } from './junglerData';
+
+ export interface Player {
   championName: string;
   isBot: boolean;
   isDead: boolean;
   items: any[]; // TODO: definir interface para items
   level: number;
-  position: string;
+  position: Position;
   rawChampionName: string;
   respawnTimer: number;
   runes: any; // TODO: definir interface para runes
