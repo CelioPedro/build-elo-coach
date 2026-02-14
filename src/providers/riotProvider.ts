@@ -94,4 +94,19 @@ export class RiotProvider {
     // Mesmo método, pois playerlist está disponível na loading
     return this.getJungler();
   }
+
+  async getWards(): Promise<any[]> {
+    // Real API doesn't provide ward data
+    return [];
+  }
+
+  async getObjectives(): Promise<any[]> {
+    // Real API doesn't provide objective data
+    return [];
+  }
+
+  async getLanePressures(): Promise<any[]> {
+    // Real API doesn't provide lane pressure data
+    return [];
+  }
 }

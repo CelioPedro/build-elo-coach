@@ -194,6 +194,82 @@ interface GankHistory {
 - Falsos Positivos: <20%
 - Latência: <2s
 
+## Hipóteses de Gank Detalhadas
+
+### Sistema de Hipóteses Contextuais
+
+O sistema gera hipóteses baseadas em múltiplos fatores simultâneos, fornecendo insights ricos sobre possíveis intenções do jungler inimigo.
+
+### Fatores Considerados
+
+1. **Visão (Wards)**: Wards ativos, destruídos recentemente, áreas cegas
+2. **Objetivos**: Status de Dragon, Baron, Herald (vivo/morto/respawn)
+3. **Pressão de Lane**: Se lanes estão avançadas ou recuadas
+4. **Posição do JG**: Última posição conhecida, tempo desde visto
+5. **Timing**: Janelas típicas de gank, respawns de objetivos
+
+### Exemplos de Hipóteses
+
+#### Cenário 1: JG Visto por Ward
+- **Condições**: JG visto em jungle TOP SIDE por ward, Dragon vivo, mid lane avançada
+- **Hipótese**: "JG inimigo visto na jungle TOP SIDE por ward. Dragão vivo e mid avançado. JG PODE estar por perto (bot)."
+- **Risco**: Médio-Alto
+
+#### Cenário 2: Objetivo Recente
+- **Condições**: Baron morto há 30s, JG não visto há 1min, top lane recuada
+- **Hipótese**: "Baron morto recentemente. JG não visto há 1 minuto. Possível gank em top lane."
+- **Risco**: Alto
+
+#### Cenário 3: Ward Destruído
+- **Condições**: Ward em river destruído, JG invisível, mid lane neutra
+- **Hipótese**: "Ward em river destruído. JG invisível. Gank iminente possível em mid."
+- **Risco**: Médio
+
+#### Cenário 4: Pressão Coordenada
+- **Condições**: Dragon morto, JG em bot jungle, bot lane avançada
+- **Hipótese**: "Dragon morto. JG em bot jungle. Ataque coordenado possível em bot."
+- **Risco**: Alto
+
+#### Cenário 5: Ausência Prolongada
+- **Condições**: JG não visto há 3min, nenhum objetivo morto recentemente
+- **Hipótese**: "JG não visto há 3 minutos. Possível farming intenso ou gank surpresa."
+- **Risco**: Baixo-Médio
+
+#### Cenário 6: Herald Vivo
+- **Condições**: Herald vivo, JG em top jungle, top lane pressionando
+- **Hipótese**: "Herald vivo. JG em top jungle. Possível push coordenado em top."
+- **Risco**: Médio
+
+#### Cenário 7: Multi-Objetivo
+- **Condições**: Dragon e Baron vivos, JG alternando entre jungles
+- **Hipótese**: "Objetivos intactos. JG farming normalmente. Risco baixo de gank."
+- **Risco**: Baixo
+
+#### Cenário 8: Lane Isolada
+- **Condições**: Mid lane avançada, JG invisível, wards em mid gap
+- **Hipótese**: "Mid avançada. JG invisível. Gank em mid provável se ward cair."
+- **Risco**: Alto
+
+### Lógica de Combinação
+
+As hipóteses são geradas combinando fatores com pesos:
+
+```typescript
+function generateHypothesis(factors: GameFactors): string {
+  const primaryFactor = getMostRelevantFactor(factors);
+  const secondaryFactors = getSupportingFactors(factors, primaryFactor);
+
+  return combineFactorsIntoHypothesis(primaryFactor, secondaryFactors);
+}
+```
+
+### Validação de Hipóteses
+
+- **Precisão**: Hipóteses devem ser acionáveis (não vagas)
+- **Contexto**: Incluir localização relativa (top/bot side)
+- **Probabilidade**: Indicar nível de certeza (POSSÍVEL/PROVÁVEL/CERTO)
+- **Ação**: Sugerir resposta (ward, recall, etc.)
+
 ## Roadmap de Melhorias
 
 ### Fase 1 (Atual)
@@ -201,10 +277,11 @@ interface GankHistory {
 - Alertas por proximidade
 - Perfis estáticos de campeão
 
-### Fase 2 (Próxima)
-- Pathing dinâmico
-- Aprendizado adaptativo
-- Alertas contextuais
+### Fase 2 (Próxima) - EM IMPLEMENTAÇÃO
+- Hipóteses contextuais detalhadas
+- Simulação de wards e objetivos
+- Pressão de lanes dinâmica
+- UI com texto de hipótese completo
 
 ### Fase 3 (Futuro)
 - Integração com wards

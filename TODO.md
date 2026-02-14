@@ -29,6 +29,8 @@
 - [x] Implementar Simulador de Partida: Simulação completa em tempo real
 - [x] Ajustar interface condicional: Mostrar detalhes apenas quando em partida
 - [x] Refatoração visual: Elementos dinâmicos com animações
+- [x] Enriquecer Simulador com Hipóteses Detalhadas: Wards, objetivos, pressão de lanes
+- [ ] Melhorar interface com ícones de campeões inimigos e status de visão por ward
 - [ ] Tratamento de erros: Fallbacks para desconexões da API
 - [ ] Otimização de recursos: Throttling quando jogo pausado/fundo
 - [ ] Métricas básicas: Logging de latência e uso de recursos

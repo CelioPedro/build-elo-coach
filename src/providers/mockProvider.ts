@@ -122,4 +122,25 @@ export class MockProvider {
   isSimulationRunning(): boolean {
     return this.isSimulating && this.simulator?.isSimulating() === true;
   }
+
+  async getWards(): Promise<any[]> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulator.getWards();
+    }
+    return [];
+  }
+
+  async getObjectives(): Promise<any[]> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulator.getObjectives();
+    }
+    return [];
+  }
+
+  async getLanePressures(): Promise<any[]> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulator.getLanePressures();
+    }
+    return [];
+  }
 }

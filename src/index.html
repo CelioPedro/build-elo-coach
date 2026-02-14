@@ -75,6 +75,7 @@
         font-size: 10px;
         margin-top: 10px;
         transition: background 0.3s;
+        pointer-events: auto;
       }
       .sim-button:hover {
         background: rgba(200, 170, 110, 1);
@@ -84,6 +85,34 @@
       }
       .alert {
         transition: background 0.5s, color 0.5s;
+      }
+      .enemy-team {
+        margin-top: 10px;
+      }
+      .enemy-champions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      }
+      .enemy-champion {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0.5;
+      }
+      .enemy-champion:not(.dead) {
+        opacity: 1;
+      }
+      .enemy-champion.dead img {
+        filter: grayscale(100%);
+        opacity: 0.3;
+      }
+      .champion-vision {
+        font-size: 6px;
+        color: #00ffcc;
+        margin-top: 2px;
+        text-align: center;
       }
     </style>
   </head>
@@ -96,9 +125,14 @@
       <div id="gank-section" class="section">
         <div class="label">Risco de Gank</div>
         <div id="gank-alert" class="alert seguro">Seguro</div>
+        <div id="gank-hypothesis" class="status" style="font-size: 8px; margin-top: 5px;"></div>
       </div>
       <div id="game-status" class="status">Aguardando partida...</div>
       <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
+      <div id="enemy-team" class="enemy-team" style="display: none;">
+        <div class="label">Inimigos</div>
+        <div id="enemy-champions" class="enemy-champions"></div>
+      </div>
       <button id="simulation-button" class="sim-button">Iniciar Simulação</button>
     </div>
   </body>

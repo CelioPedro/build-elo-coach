@@ -4,6 +4,7 @@ import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
+import { GameFactors } from './contracts/junglerData';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -39,7 +40,8 @@ function createMainWindow(): void {
   console.log('MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY:', MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY);
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  // Click-through handled by CSS pointer-events
+  // Click-through handled by CSS pointer-events - window captures mouse but only HUD handles
+  mainWindow.setIgnoreMouseEvents(false);
 
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
@@ -48,7 +50,8 @@ function createMainWindow(): void {
       gameTime: null,
       waveTime: '--:--',
       isSiege: false,
-      gankRisk: 'Seguro',
+      gankRisk: 'low',
+      gankHypothesis: 'Aguardando partida...',
       junglerName: 'Desconhecido'
     });
   });
@@ -121,7 +124,8 @@ async function updateGameData(): Promise<void> {
 
     let waveTime = '--:--';
     let isSiege = false;
-    let gankRisk: 'Seguro' | 'Atenção' | 'Perigo' = 'Seguro';
+    let gankRisk: 'low' | 'medium' | 'high' = 'low';
+    let gankHypothesis = 'Aguardando partida...';
     let junglerName = 'Desconhecido';
 
     if (gameState === 'in_game' && gameTime !== null) {
@@ -129,16 +133,25 @@ async function updateGameData(): Promise<void> {
       junglerTracker.updateJunglerState(players);
 
       const junglerState = junglerTracker.getJunglerState();
-      if (junglerState) {
-        junglerName = junglerState.championName;
-        const gankAlerts = gankPredictor.predictGanks(junglerState);
-        if (gankAlerts.length > 0) {
-          const highestRisk = gankAlerts.reduce((max, alert) =>
-            alert.risk === 'high' ? alert : max.risk === 'high' ? max : alert
-          );
-          gankRisk = highestRisk.risk === 'high' ? 'Perigo' : highestRisk.risk === 'medium' ? 'Atenção' : 'Seguro';
-        }
-      }
+      junglerName = junglerState?.championName || 'Desconhecido';
+
+      // Gather game factors
+      const wards = await provider.getWards();
+      const objectives = await provider.getObjectives();
+      const lanePressures = await provider.getLanePressures();
+
+      const gameFactors: GameFactors = {
+        junglerState,
+        wards,
+        objectives,
+        lanePressures,
+        gameTime
+      };
+
+      // Generate hypothesis
+      const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
+      gankRisk = hypothesisResult.risk;
+      gankHypothesis = hypothesisResult.hypothesis;
 
       const waveInfo = TacticalEngine.calculateNextWave(gameTime);
       waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
@@ -162,7 +175,12 @@ async function updateGameData(): Promise<void> {
         waveTime,
         isSiege,
         gankRisk,
-        junglerName
+        gankHypothesis,
+        junglerName,
+        players: gameState === 'in_game' ? await provider.getPlayerList() : [],
+        wards: gameState === 'in_game' ? await provider.getWards() : [],
+        objectives: gameState === 'in_game' ? await provider.getObjectives() : [],
+        lanePressures: gameState === 'in_game' ? await provider.getLanePressures() : []
       });
     }
   } catch (error) {

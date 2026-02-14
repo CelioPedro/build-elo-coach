@@ -1,4 +1,4 @@
-import { JunglerState, GankAlert, Lane } from '../contracts/junglerData';
+import { JunglerState, GankAlert, Lane, GameFactors, WardType, ObjectiveType } from '../contracts/junglerData';
 
 export class GankPredictor {
   private gankHistory: Array<{ timestamp: number; lane: string; success: boolean }> = [];
@@ -91,5 +91,123 @@ export class GankPredictor {
     });
 
     return alerts;
+  }
+
+  /**
+   * Gera hipótese detalhada baseada em fatores do jogo
+   */
+  generateHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
+    const { junglerState, wards, objectives, lanePressures, gameTime } = factors;
+
+    // Cenário base: sem jungler visível
+    if (!junglerState || !junglerState.isVisible) {
+      return this.generateInvisibleJunglerHypothesis(factors);
+    }
+
+    // Cenário: JG visto por ward
+    const nearbyWards = wards.filter(ward =>
+      this.distance(junglerState.position, ward.position) < 2000 &&
+      gameTime - ward.placedAt < 30 // Ward recente
+    );
+
+    if (nearbyWards.length > 0) {
+      return this.generateWardSightedHypothesis(factors, nearbyWards);
+    }
+
+    // Cenário: JG em posição conhecida
+    return this.generatePositionBasedHypothesis(factors);
+  }
+
+  private generateInvisibleJunglerHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
+    const { objectives, lanePressures, gameTime } = factors;
+
+    // Verificar objetivos recentes
+    const recentObjectives = objectives.filter(obj =>
+      obj.killedAt && (gameTime - obj.killedAt) < 60 // Morto há menos de 1min
+    );
+
+    if (recentObjectives.length > 0) {
+      const obj = recentObjectives[0];
+      const timeSinceKill = gameTime - obj.killedAt!;
+      const respawnIn = obj.respawnAt! - gameTime;
+
+      if (timeSinceKill < 30) {
+        return {
+          risk: 'high',
+          hypothesis: `${obj.type === 'dragon' ? 'Dragão' : obj.type === 'baron' ? 'Baron' : 'Herald'} morto recentemente. JG invisível. Gank provável em breve.`
+        };
+      }
+    }
+
+    // Verificar pressão de lanes
+    const pushingLanes = lanePressures.filter(lp => lp.pressure === 'pushing');
+    if (pushingLanes.length > 0) {
+      const lane = pushingLanes[0];
+      return {
+        risk: 'medium',
+        hypothesis: `${lane.lane} avançada. JG não visto há ${Math.floor(gameTime / 60)}min. Possível gank iminente.`
+      };
+    }
+
+    return {
+      risk: 'low',
+      hypothesis: 'JG não visto recentemente. Objetivos intactos. Risco baixo de gank.'
+    };
+  }
+
+  private generateWardSightedHypothesis(factors: GameFactors, nearbyWards: any[]): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
+    const { junglerState, objectives, lanePressures } = factors;
+
+    // Verificar região do JG
+    const region = junglerState!.region;
+    let side = '';
+    if (region.includes('TOP')) side = 'TOP SIDE';
+    else if (region.includes('BOT')) side = 'BOT SIDE';
+    else side = 'MID';
+
+    // Verificar objetivos
+    const dragonAlive = objectives.some(obj => obj.type === ObjectiveType.DRAGON && obj.alive);
+    const baronAlive = objectives.some(obj => obj.type === ObjectiveType.BARON && obj.alive);
+
+    // Verificar pressão oposta
+    let opposingPressure = '';
+    if (side === 'TOP SIDE') {
+      const botPressure = lanePressures.find(lp => lp.lane === Lane.BOT);
+      if (botPressure?.pressure === 'pushing') opposingPressure = ', bot avançada';
+    } else if (side === 'BOT SIDE') {
+      const topPressure = lanePressures.find(lp => lp.lane === Lane.TOP);
+      if (topPressure?.pressure === 'pushing') opposingPressure = ', top avançada';
+    }
+
+    const objStatus = dragonAlive ? 'Dragão vivo' : 'Dragão morto';
+    const hypothesis = `JG inimigo visto na jungle ${side} por ward. ${objStatus}${opposingPressure}. JG PODE estar por perto.`;
+
+    return {
+      risk: 'medium',
+      hypothesis
+    };
+  }
+
+  private generatePositionBasedHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
+    const { junglerState, lanePressures } = factors;
+
+    const region = junglerState!.region;
+    let targetLane = '';
+
+    if (region.includes('TOP')) targetLane = 'top';
+    else if (region.includes('BOT')) targetLane = 'bot';
+    else targetLane = 'mid';
+
+    const lanePressure = lanePressures.find(lp => lp.lane.toLowerCase() === targetLane);
+    const pressureText = lanePressure?.pressure === 'pushing' ? 'avançada' : 'neutra';
+
+    return {
+      risk: 'high',
+      hypothesis: `JG em ${region.replace('_', ' ').toLowerCase()}. ${targetLane} ${pressureText}. Gank provável em ${targetLane}.`
+    };
+  }
+
+  private distance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
+    return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
   }
 }

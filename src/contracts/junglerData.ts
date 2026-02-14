@@ -53,3 +53,46 @@ export interface GankHistory {
   duration: number;
   position: Position;
 }
+
+export enum WardType {
+  VISION = 'vision',
+  PINK = 'pink'
+}
+
+export interface Ward {
+  id: string;
+  position: Position;
+  type: WardType;
+  team: 'ORDER' | 'CHAOS';
+  placedAt: number;
+  duration: number; // seconds
+}
+
+export enum ObjectiveType {
+  DRAGON = 'dragon',
+  BARON = 'baron',
+  HERALD = 'herald'
+}
+
+export interface Objective {
+  type: ObjectiveType;
+  alive: boolean;
+  killedAt?: number;
+  respawnAt?: number;
+  position: Position;
+}
+
+export interface LanePressure {
+  lane: Lane;
+  pressure: 'pushing' | 'neutral' | 'receding';
+  towerHealth?: number;
+  inhibitorAlive?: boolean;
+}
+
+export interface GameFactors {
+  junglerState: JunglerState | null;
+  wards: Ward[];
+  objectives: Objective[];
+  lanePressures: LanePressure[];
+  gameTime: number;
+}
