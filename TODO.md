@@ -26,6 +26,9 @@
 - [x] Feedback visual: Cores dinâmicas para níveis de risco (Seguro, Atenção, Perigo)
 
 ## Fase 5: Refinamentos e Testes (2-3 dias)
+- [x] Implementar Simulador de Partida: Simulação completa em tempo real
+- [x] Ajustar interface condicional: Mostrar detalhes apenas quando em partida
+- [x] Refatoração visual: Elementos dinâmicos com animações
 - [ ] Tratamento de erros: Fallbacks para desconexões da API
 - [ ] Otimização de recursos: Throttling quando jogo pausado/fundo
 - [ ] Métricas básicas: Logging de latência e uso de recursos

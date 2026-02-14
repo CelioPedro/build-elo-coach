@@ -39,8 +39,7 @@ function createMainWindow(): void {
   console.log('MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY:', MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY);
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  // Configurar click-through
-  mainWindow.setIgnoreMouseEvents(true);
+  // Click-through handled by CSS pointer-events
 
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
@@ -85,62 +84,96 @@ app.on('activate', () => {
   }
 });
 
+// IPC handlers for simulation
+ipcMain.handle('start-simulation', () => {
+  if (provider instanceof MockProvider) {
+    provider.startSimulation();
+    // Change polling to 1s for simulation
+    if (gameUpdateInterval) {
+      clearInterval(gameUpdateInterval);
+    }
+    gameUpdateInterval = setInterval(async () => {
+      await updateGameData();
+    }, 1000);
+  }
+});
+
+ipcMain.handle('stop-simulation', () => {
+  if (provider instanceof MockProvider) {
+    provider.stopSimulation();
+    // Change back to 2s polling
+    if (gameUpdateInterval) {
+      clearInterval(gameUpdateInterval);
+    }
+    gameUpdateInterval = setInterval(async () => {
+      await updateGameData();
+    }, 2000);
+  }
+});
+
+
+
+// Função para atualizar dados do jogo
+async function updateGameData(): Promise<void> {
+  try {
+    const gameState = await provider.getGameState();
+    const gameTime = await provider.getGameTime();
+
+    let waveTime = '--:--';
+    let isSiege = false;
+    let gankRisk: 'Seguro' | 'Atenção' | 'Perigo' = 'Seguro';
+    let junglerName = 'Desconhecido';
+
+    if (gameState === 'in_game' && gameTime !== null) {
+      const players = await provider.getPlayerList();
+      junglerTracker.updateJunglerState(players);
+
+      const junglerState = junglerTracker.getJunglerState();
+      if (junglerState) {
+        junglerName = junglerState.championName;
+        const gankAlerts = gankPredictor.predictGanks(junglerState);
+        if (gankAlerts.length > 0) {
+          const highestRisk = gankAlerts.reduce((max, alert) =>
+            alert.risk === 'high' ? alert : max.risk === 'high' ? max : alert
+          );
+          gankRisk = highestRisk.risk === 'high' ? 'Perigo' : highestRisk.risk === 'medium' ? 'Atenção' : 'Seguro';
+        }
+      }
+
+      const waveInfo = TacticalEngine.calculateNextWave(gameTime);
+      waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
+      isSiege = waveInfo.isSiege;
+
+      consecutiveErrors = 0;
+    } else {
+      consecutiveErrors++;
+      if (consecutiveErrors > 10) {
+        console.log('Muitas tentativas falhadas, pausando monitoramento');
+        clearInterval(gameUpdateInterval!);
+        gameUpdateInterval = null;
+      }
+    }
+
+    // Enviar dados para a interface
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-update', {
+        gameState,
+        gameTime,
+        waveTime,
+        isSiege,
+        gankRisk,
+        junglerName
+      });
+    }
+  } catch (error) {
+    console.error('Erro no monitoramento:', error);
+    consecutiveErrors++;
+  }
+}
+
 // Função para iniciar o monitoramento do jogo
 function startGameMonitoring(): void {
   gameUpdateInterval = setInterval(async () => {
-    try {
-      const gameState = await provider.getGameState();
-      const gameTime = await provider.getGameTime();
-
-      let waveTime = '--:--';
-      let isSiege = false;
-      let gankRisk: 'Seguro' | 'Atenção' | 'Perigo' = 'Seguro';
-      let junglerName = 'Desconhecido';
-
-      if (gameState === 'in_game' && gameTime !== null) {
-        const players = await provider.getPlayerList();
-        junglerTracker.updateJunglerState(players);
-
-        const junglerState = junglerTracker.getJunglerState();
-        if (junglerState) {
-          junglerName = junglerState.championName;
-          const gankAlerts = gankPredictor.predictGanks(junglerState);
-          if (gankAlerts.length > 0) {
-            const highestRisk = gankAlerts.reduce((max, alert) =>
-              alert.risk === 'high' ? alert : max.risk === 'high' ? max : alert
-            );
-            gankRisk = highestRisk.risk === 'high' ? 'Perigo' : highestRisk.risk === 'medium' ? 'Atenção' : 'Seguro';
-          }
-        }
-
-        const waveInfo = TacticalEngine.calculateNextWave(gameTime);
-        waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
-        isSiege = waveInfo.isSiege;
-
-        consecutiveErrors = 0;
-      } else {
-        consecutiveErrors++;
-        if (consecutiveErrors > 10) {
-          console.log('Muitas tentativas falhadas, pausando monitoramento');
-          clearInterval(gameUpdateInterval!);
-          gameUpdateInterval = null;
-        }
-      }
-
-      // Enviar dados para a interface
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('game-update', {
-          gameState,
-          gameTime,
-          waveTime,
-          isSiege,
-          gankRisk,
-          junglerName
-        });
-      }
-    } catch (error) {
-      console.error('Erro no monitoramento:', error);
-      consecutiveErrors++;
-    }
+    await updateGameData();
   }, 2000); // Atualizar a cada 2 segundos
 }

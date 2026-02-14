@@ -1,10 +1,13 @@
 import { Player } from '../contracts/gameData';
 import { GameState } from './riotProvider';
+import { MatchSimulator } from '../logic/matchSimulator';
 
 export class MockProvider {
   private mockGameTime = 0;
   private mockGameState: GameState = GameState.NotActive;
   private mockPlayers: Player[] = [];
+  private simulator: MatchSimulator | null = null;
+  private isSimulating = false;
 
   constructor() {
     this.initializeMockData();
@@ -57,6 +60,9 @@ export class MockProvider {
   }
 
   async getGameState(): Promise<GameState> {
+    if (this.isSimulating) {
+      return this.mockGameState;
+    }
     // Simulate game starting after some time
     if (this.mockGameTime > 10) {
       this.mockGameState = GameState.InGame;
@@ -65,6 +71,9 @@ export class MockProvider {
   }
 
   async getGameTime(): Promise<number | null> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulator.getGameTime();
+    }
     if (this.mockGameState === GameState.InGame) {
       this.mockGameTime += 2; // Simulate 2s per call
       return this.mockGameTime;
@@ -73,6 +82,9 @@ export class MockProvider {
   }
 
   async getPlayerList(): Promise<Player[]> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulator.getPlayers();
+    }
     return this.mockPlayers;
   }
 
@@ -85,5 +97,29 @@ export class MockProvider {
 
   async getJunglerLoading(): Promise<Player | null> {
     return this.getJungler();
+  }
+
+  startSimulation(): void {
+    if (this.simulator) {
+      this.simulator.stop();
+    }
+    this.simulator = new MatchSimulator();
+    this.simulator.start();
+    this.isSimulating = true;
+    this.mockGameState = GameState.InGame;
+  }
+
+  stopSimulation(): void {
+    if (this.simulator) {
+      this.simulator.stop();
+      this.simulator = null;
+    }
+    this.isSimulating = false;
+    this.mockGameState = GameState.NotActive;
+    this.mockGameTime = 0;
+  }
+
+  isSimulationRunning(): boolean {
+    return this.isSimulating && this.simulator?.isSimulating() === true;
   }
 }

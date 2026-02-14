@@ -26,6 +26,7 @@
         margin: 20px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         backdrop-filter: blur(10px);
+        pointer-events: auto;
       }
       .section {
         margin-bottom: 15px;
@@ -64,20 +65,41 @@
         color: #c8aa6e;
         margin-top: 5px;
       }
+      .sim-button {
+        background: rgba(200, 170, 110, 0.8);
+        border: 1px solid #c8aa6e;
+        color: #1a1a1a;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 10px;
+        margin-top: 10px;
+        transition: background 0.3s;
+      }
+      .sim-button:hover {
+        background: rgba(200, 170, 110, 1);
+      }
+      .timer {
+        transition: color 0.5s;
+      }
+      .alert {
+        transition: background 0.5s, color 0.5s;
+      }
     </style>
   </head>
   <body>
     <div class="coach-hud">
-      <div class="section">
+      <div id="wave-section" class="section">
         <div class="label">Próxima Wave</div>
         <div id="wave-timer" class="timer">--:--</div>
       </div>
-      <div class="section">
+      <div id="gank-section" class="section">
         <div class="label">Risco de Gank</div>
         <div id="gank-alert" class="alert seguro">Seguro</div>
       </div>
-      <div id="game-status" class="status">LoL não detectado</div>
+      <div id="game-status" class="status">Aguardando partida...</div>
       <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
+      <button id="simulation-button" class="sim-button">Iniciar Simulação</button>
     </div>
   </body>
 </html>

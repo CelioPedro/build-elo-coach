@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('game-update', callback);
   },
   removeGameUpdate: (callback: (event: any, data: any) => void) => ipcRenderer.removeListener('game-update', callback),
+  startSimulation: () => ipcRenderer.invoke('start-simulation'),
+  stopSimulation: () => ipcRenderer.invoke('stop-simulation'),
 });
