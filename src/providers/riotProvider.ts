@@ -17,7 +17,11 @@ export class RiotProvider {
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => {
           try {
-            resolve(JSON.parse(data));
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(JSON.parse(data));
+            } else {
+              reject(new Error(`Status Code: ${res.statusCode}`));
+            }
           } catch (e) {
             reject(e);
           }
@@ -26,7 +30,7 @@ export class RiotProvider {
       req.on('error', reject);
       req.setTimeout(5000, () => {
         req.destroy();
-        reject(new Error('Timeout'));
+        reject(new Error(`Timeout ao conectar em ${url}`));
       });
     });
   }
@@ -42,8 +46,8 @@ export class RiotProvider {
 
     try {
       // Se allgamedata falhar, tentar playerlist (disponível na tela de loading)
-      await this.fetchJson(`${this.baseUrl}/playerlist`);
-      return GameState.Loading;
+      const players = await this.fetchJson(`${this.baseUrl}/playerlist`);
+      if (players && players.length > 0) return GameState.Loading;
     } catch (error) {
       // Ignorar erro
     }
@@ -55,19 +59,17 @@ export class RiotProvider {
     try {
       // Tentar gamestats primeiro
       const data = await this.fetchJson(`${this.baseUrl}/gamestats`);
-      console.log('Gamestats response:', data);
       return data.gameTime || null;
     } catch (error) {
-      console.log('Gamestats failed, trying allgamedata');
+      // Silent fail
     }
 
     try {
       // Fallback para allgamedata
       const data = await this.fetchJson(`${this.baseUrl}/allgamedata`);
-      console.log('Allgamedata response gameTime:', data.gameData?.gameTime);
       return data.gameData?.gameTime || null;
     } catch (error) {
-      console.log('Allgamedata failed');
+      // Silent fail
     }
 
     return null;
@@ -75,23 +77,23 @@ export class RiotProvider {
 
   async getPlayerList(): Promise<Player[]> {
     try {
-      return await this.fetchJson(`${this.baseUrl}/playerlist`);
+      const data = await this.fetchJson(`${this.baseUrl}/playerlist`);
+      if (Array.isArray(data)) return data as Player[];
+      return [];
     } catch (error) {
-      // Ignorar erro
+      return [];
     }
-    return [];
   }
 
   async getJungler(): Promise<Player | null> {
     const players = await this.getPlayerList();
     return players.find(player =>
-      player.summonerSpells.summonerSpellOne?.id === 11 ||
-      player.summonerSpells.summonerSpellTwo?.id === 11
-    ) || null; // Smite ID
+      player.summonerSpells.summonerSpellOne?.displayName?.includes('Smite') ||
+      player.summonerSpells.summonerSpellTwo?.displayName?.includes('Smite')
+    ) || null;
   }
 
   async getJunglerLoading(): Promise<Player | null> {
-    // Mesmo método, pois playerlist está disponível na loading
     return this.getJungler();
   }
 

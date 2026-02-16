@@ -25,14 +25,18 @@ export class MockProvider {
         position: { x: 7000, y: 7000 },
         rawChampionName: 'leesin',
         respawnTimer: 0,
-        runes: {},
+        runes: {
+          keystone: { displayName: 'Conqueror', id: 8010, rawDescription: '', rawDisplayName: 'Conqueror' },
+          primaryRuneTree: { displayName: 'Precision', id: 8000, rawDescription: '', rawDisplayName: 'Precision' },
+          secondaryRuneTree: { displayName: 'Domination', id: 8100, rawDescription: '', rawDisplayName: 'Domination' }
+        },
         scores: { assists: 2, creepScore: 45, deaths: 0, kills: 3, wardScore: 10 },
         skinID: 0,
         skinName: '',
         summonerName: 'MockPlayer1',
         summonerSpells: {
-          summonerSpellOne: { id: 11, name: 'Smite' },
-          summonerSpellTwo: { id: 4, name: 'Flash' }
+          summonerSpellOne: { displayName: 'Smite', rawDescription: '', rawDisplayName: 'Smite' },
+          summonerSpellTwo: { displayName: 'Flash', rawDescription: '', rawDisplayName: 'Flash' }
         },
         team: 'ORDER'
       },
@@ -45,14 +49,18 @@ export class MockProvider {
         position: { x: 7500, y: 7500 },
         rawChampionName: 'ahri',
         respawnTimer: 0,
-        runes: {},
+        runes: {
+          keystone: { displayName: 'Electrocute', id: 8112, rawDescription: '', rawDisplayName: 'Electrocute' },
+          primaryRuneTree: { displayName: 'Domination', id: 8100, rawDescription: '', rawDisplayName: 'Domination' },
+          secondaryRuneTree: { displayName: 'Sorcery', id: 8200, rawDescription: '', rawDisplayName: 'Sorcery' }
+        },
         scores: { assists: 1, creepScore: 30, deaths: 1, kills: 1, wardScore: 5 },
         skinID: 0,
         skinName: '',
         summonerName: 'MockPlayer2',
         summonerSpells: {
-          summonerSpellOne: { id: 4, name: 'Flash' },
-          summonerSpellTwo: { id: 3, name: 'Exhaust' }
+          summonerSpellOne: { displayName: 'Flash', rawDescription: '', rawDisplayName: 'Flash' },
+          summonerSpellTwo: { displayName: 'Exhaust', rawDescription: '', rawDisplayName: 'Exhaust' }
         },
         team: 'CHAOS'
       }
@@ -90,8 +98,8 @@ export class MockProvider {
 
   async getJungler(): Promise<Player | null> {
     return this.mockPlayers.find(player =>
-      player.summonerSpells.summonerSpellOne?.id === 11 ||
-      player.summonerSpells.summonerSpellTwo?.id === 11
+      player.summonerSpells.summonerSpellOne?.displayName === 'Smite' ||
+      player.summonerSpells.summonerSpellTwo?.displayName === 'Smite'
     ) || null;
   }
 

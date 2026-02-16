@@ -40,8 +40,15 @@ function createMainWindow(): void {
   console.log('MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY:', MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY);
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  // Click-through handled by CSS pointer-events - window captures mouse but only HUD handles
-  mainWindow.setIgnoreMouseEvents(false);
+  // Click-through: Ignore mouse events by default (let them pass to game)
+  // forward: true is needed to allow hover events to still reach the window (for mouseenter/leave)
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  // IPC handlers for mouse events
+  ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.setIgnoreMouseEvents(ignore, options);
+  });
 
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
@@ -63,8 +70,9 @@ function createMainWindow(): void {
 
 // Inicialização da aplicação
 app.on('ready', () => {
-  // Use mock provider for testing
-  provider = new MockProvider();
+  // Initialize Riot Provider for live data
+  provider = new RiotProvider();
+  // provider = new MockProvider();
   junglerTracker = new JunglerTracker();
   gankPredictor = new GankPredictor();
 
@@ -159,16 +167,17 @@ async function updateGameData(): Promise<void> {
 
       consecutiveErrors = 0;
     } else {
-      consecutiveErrors++;
-      if (consecutiveErrors > 10) {
-        console.log('Muitas tentativas falhadas, pausando monitoramento');
-        clearInterval(gameUpdateInterval!);
-        gameUpdateInterval = null;
-      }
+      // Game not active, just wait. Do not increment errors.
+      consecutiveErrors = 0;
     }
 
     // Enviar dados para a interface
     if (mainWindow && !mainWindow.isDestroyed()) {
+      const players = gameState === 'in_game' ? await provider.getPlayerList() : [];
+      const wards = gameState === 'in_game' ? await provider.getWards() : [];
+      const objectives = gameState === 'in_game' ? await provider.getObjectives() : [];
+      const lanes = gameState === 'in_game' ? await provider.getLanePressures() : [];
+
       mainWindow.webContents.send('game-update', {
         gameState,
         gameTime,
@@ -177,15 +186,22 @@ async function updateGameData(): Promise<void> {
         gankRisk,
         gankHypothesis,
         junglerName,
-        players: gameState === 'in_game' ? await provider.getPlayerList() : [],
-        wards: gameState === 'in_game' ? await provider.getWards() : [],
-        objectives: gameState === 'in_game' ? await provider.getObjectives() : [],
-        lanePressures: gameState === 'in_game' ? await provider.getLanePressures() : []
+        players,
+        wards,
+        objectives,
+        lanePressures: lanes,
+        error: null // Clear previous errors
       });
     }
   } catch (error) {
     console.error('Erro no monitoramento:', error);
-    consecutiveErrors++;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('game-update', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    // Do not increment consecutiveErrors to keep retrying
+    // consecutiveErrors++;
   }
 }
 

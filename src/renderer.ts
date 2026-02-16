@@ -10,7 +10,7 @@ const waveSection = document.getElementById('wave-section') as HTMLElement;
 const gankSection = document.getElementById('gank-section') as HTMLElement;
 const enemyTeam = document.getElementById('enemy-team') as HTMLElement;
 const enemyChampions = document.getElementById('enemy-champions') as HTMLElement;
-const simulationButton = document.getElementById('simulation-button') as HTMLButtonElement;
+// const simulationButton = document.getElementById('simulation-button') as HTMLButtonElement;
 
 // Estado do jogo
 let isGameActive = false;
@@ -26,11 +26,36 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
     champDiv.className = `enemy-champion ${player.isDead ? 'dead' : ''}`;
 
     // Adicionar imagem do campeão
+    // Adicionar imagem do campeão
     const champImg = document.createElement('img');
-    champImg.src = `https://ddragon.leagueoflegends.com/cdn/13.24.1/img/champion/${player.rawChampionName}.png`;
+
+    // Normalização do nome para DDragon
+    // Tentativa 1: DDragon com rawChampionName sanitizado
+    const safeChampName = player.rawChampionName.replace(/[^a-zA-Z0-9]/g, '');
+    const ddragonUrl = `https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${safeChampName}.png`;
+
+    // Tentativa 2: CommunityDragon (Generic, costuma ser mais permissivo ou usar IDs)
+    const cdragonUrl = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${player.skinID || 0}.png`;
+
+    champImg.src = ddragonUrl;
     champImg.style.width = '20px';
     champImg.style.height = '20px';
     champImg.style.borderRadius = '2px';
+    champImg.setAttribute('data-fallback-index', '0');
+
+    // Error handler for fallback sequence
+    champImg.onerror = () => {
+      const fallbackIndex = parseInt(champImg.getAttribute('data-fallback-index') || '0');
+      if (fallbackIndex === 0) {
+        console.warn(`[EloCoach] Falha DDragon (${ddragonUrl}). Tentando CDragon.`);
+        champImg.src = cdragonUrl;
+        champImg.setAttribute('data-fallback-index', '1');
+      } else if (fallbackIndex === 1) {
+        console.warn(`[EloCoach] Falha CDragon (${cdragonUrl}). Usando placeholder.`);
+        champImg.src = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
+        champImg.setAttribute('data-fallback-index', '2');
+      }
+    };
     champDiv.appendChild(champImg);
 
     // Verificar se foi visto recentemente por ward
@@ -101,7 +126,12 @@ function updateUI(data: {
 
     gankHypothesisEl.textContent = gankHypothesis;
 
-    gameStatus.textContent = `Jogo ativo - ${Math.floor(gameTime / 60)}:${(gameTime % 60).toString().padStart(2, '0')}`;
+    if (gameStatus.textContent?.includes('Erro')) {
+      // Keep error message if present
+    } else {
+      gameStatus.textContent = ''; // Limpar "Aguardando partida"
+    }
+
   } else {
     if (isGameActive) {
       console.log('❌ Jogo encerrado');
@@ -114,34 +144,43 @@ function updateUI(data: {
     junglerInfo.style.display = 'none';
     enemyTeam.style.display = 'none';
 
-    gameStatus.textContent = 'Aguardando partida...';
+    // Show debug info if no error
+    if (!gameStatus.textContent?.includes('Erro')) {
+      gameStatus.innerHTML = 'Aguardando partida...<br><span style="font-size: 8px; color: #666;">Verificando API Riot...</span>';
+    }
     gankHypothesisEl.textContent = '';
   }
 }
 
-// Função para alternar simulação
-async function toggleSimulation() {
-  if (isSimulating) {
-    await (window as any).electronAPI.stopSimulation();
-    simulationButton.textContent = 'Iniciar Simulação';
-    isSimulating = false;
-  } else {
-    await (window as any).electronAPI.startSimulation();
-    simulationButton.textContent = 'Parar Simulação';
-    isSimulating = true;
-  }
-}
+// Função para alternar simulação (Removida)
+// async function toggleSimulation() { ... }
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EloCoach inicializado');
 
-  // Configurar botão de simulação
-  simulationButton.addEventListener('click', toggleSimulation);
+  // Lógica de Click-Through para elementos interativos
+  const interactiveElements = [document.querySelector('.coach-hud')];
+
+  interactiveElements.forEach(el => {
+    if (!el) return;
+    el.addEventListener('mouseenter', () => {
+      (window as any).electronAPI.setIgnoreMouseEvents(false);
+    });
+    el.addEventListener('mouseleave', () => {
+      (window as any).electronAPI.setIgnoreMouseEvents(true, { forward: true });
+    });
+  });
 
   // Escutar atualizações do main process via preload
   (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
     console.log('Recebido game-update:', data);
-    updateUI(data);
+    if (data.error) {
+      gameStatus.textContent = `Erro: ${data.error}`;
+      gameStatus.style.color = '#ff4444';
+    } else {
+      gameStatus.style.color = '#a09b8c';
+      updateUI(data);
+    }
   });
 });

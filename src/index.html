@@ -1,139 +1,172 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>EloCoach</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: 'Segoe UI', sans-serif;
-        overflow: hidden;
-        background: transparent;
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 300px;
-        height: 100vh;
-        pointer-events: none;
-      }
-      .coach-hud {
-        background: rgba(1, 10, 19, 0.9);
-        border: 2px solid #c8aa6e;
-        border-radius: 8px;
-        color: #f0e6d2;
-        padding: 15px;
-        margin: 20px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(10px);
-        pointer-events: auto;
-      }
-      .section {
-        margin-bottom: 15px;
-        text-align: center;
-      }
-      .label {
-        font-size: 10px;
-        color: #a09b8c;
-        margin-bottom: 5px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      .timer {
-        font-size: 28px;
-        font-weight: bold;
-        color: #00ffcc;
-        font-family: 'Courier New', monospace;
-      }
-      .alert {
-        font-size: 12px;
-        font-weight: bold;
-        padding: 5px 10px;
-        border-radius: 4px;
-        display: inline-block;
-      }
-      .alert.seguro { background: rgba(68, 255, 68, 0.2); color: #44ff44; }
-      .alert.atencao { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
-      .alert.perigo { background: rgba(255, 68, 68, 0.2); color: #ff4444; }
-      .status {
-        font-size: 9px;
-        color: #a09b8c;
-        margin-top: 10px;
-      }
-      .jungler {
-        font-size: 9px;
-        color: #c8aa6e;
-        margin-top: 5px;
-      }
-      .sim-button {
-        background: rgba(200, 170, 110, 0.8);
-        border: 1px solid #c8aa6e;
-        color: #1a1a1a;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 10px;
-        margin-top: 10px;
-        transition: background 0.3s;
-        pointer-events: auto;
-      }
-      .sim-button:hover {
-        background: rgba(200, 170, 110, 1);
-      }
-      .timer {
-        transition: color 0.5s;
-      }
-      .alert {
-        transition: background 0.5s, color 0.5s;
-      }
-      .enemy-team {
-        margin-top: 10px;
-      }
-      .enemy-champions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        margin-top: 5px;
-      }
-      .enemy-champion {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        opacity: 0.5;
-      }
-      .enemy-champion:not(.dead) {
-        opacity: 1;
-      }
-      .enemy-champion.dead img {
-        filter: grayscale(100%);
-        opacity: 0.3;
-      }
-      .champion-vision {
-        font-size: 6px;
-        color: #00ffcc;
-        margin-top: 2px;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="coach-hud">
-      <div id="wave-section" class="section">
-        <div class="label">Próxima Wave</div>
-        <div id="wave-timer" class="timer">--:--</div>
-      </div>
-      <div id="gank-section" class="section">
-        <div class="label">Risco de Gank</div>
-        <div id="gank-alert" class="alert seguro">Seguro</div>
-        <div id="gank-hypothesis" class="status" style="font-size: 8px; margin-top: 5px;"></div>
-      </div>
-      <div id="game-status" class="status">Aguardando partida...</div>
-      <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
-      <div id="enemy-team" class="enemy-team" style="display: none;">
-        <div class="label">Inimigos</div>
-        <div id="enemy-champions" class="enemy-champions"></div>
-      </div>
-      <button id="simulation-button" class="sim-button">Iniciar Simulação</button>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ddragon.leagueoflegends.com https://raw.communitydragon.org; connect-src 'self' https://127.0.0.1:2999">
+  <title>EloCoach</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      background: transparent;
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100vh;
+      pointer-events: none;
+    }
+
+    .coach-hud {
+      background: rgba(1, 10, 19, 0.9);
+      border: 2px solid #c8aa6e;
+      border-radius: 8px;
+      color: #f0e6d2;
+      padding: 15px;
+      margin: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+    }
+
+    .section {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .label {
+      font-size: 10px;
+      color: #a09b8c;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .timer {
+      font-size: 28px;
+      font-weight: bold;
+      color: #00ffcc;
+      font-family: 'Courier New', monospace;
+    }
+
+    .alert {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 5px 10px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .alert.seguro {
+      background: rgba(68, 255, 68, 0.2);
+      color: #44ff44;
+    }
+
+    .alert.atencao {
+      background: rgba(255, 170, 0, 0.2);
+      color: #ffaa00;
+    }
+
+    .alert.perigo {
+      background: rgba(255, 68, 68, 0.2);
+      color: #ff4444;
+    }
+
+    .status {
+      font-size: 9px;
+      color: #a09b8c;
+      margin-top: 10px;
+    }
+
+    .jungler {
+      font-size: 9px;
+      color: #c8aa6e;
+      margin-top: 5px;
+    }
+
+    .sim-button {
+      background: rgba(200, 170, 110, 0.8);
+      border: 1px solid #c8aa6e;
+      color: #1a1a1a;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      margin-top: 10px;
+      transition: background 0.3s;
+      pointer-events: auto;
+    }
+
+    .sim-button:hover {
+      background: rgba(200, 170, 110, 1);
+    }
+
+    .timer {
+      transition: color 0.5s;
+    }
+
+    .alert {
+      transition: background 0.5s, color 0.5s;
+    }
+
+    .enemy-team {
+      margin-top: 10px;
+    }
+
+    .enemy-champions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 5px;
+    }
+
+    .enemy-champion {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0.5;
+    }
+
+    .enemy-champion:not(.dead) {
+      opacity: 1;
+    }
+
+    .enemy-champion.dead img {
+      filter: grayscale(100%);
+      opacity: 0.3;
+    }
+
+    .champion-vision {
+      font-size: 6px;
+      color: #00ffcc;
+      margin-top: 2px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="coach-hud">
+    <div id="wave-section" class="section">
+      <div class="label">Próxima Wave</div>
+      <div id="wave-timer" class="timer">--:--</div>
     </div>
-  </body>
+    <div id="gank-section" class="section">
+      <div class="label">Risco de Gank</div>
+      <div id="gank-alert" class="alert seguro">Seguro</div>
+      <div id="gank-hypothesis" class="status" style="font-size: 8px; margin-top: 5px;"></div>
+    </div>
+    <div id="game-status" class="status">Aguardando partida...</div>
+    <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
+    <div id="enemy-team" class="enemy-team" style="display: none;">
+      <div class="label">Inimigos</div>
+      <div id="enemy-champions" class="enemy-champions"></div>
+    </div>
+  </div>
+</body>
+
 </html>
