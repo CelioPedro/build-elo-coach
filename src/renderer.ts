@@ -15,6 +15,18 @@ const enemyChampions = document.getElementById('enemy-champions') as HTMLElement
 // Estado do jogo
 let isGameActive = false;
 let isSimulating = false;
+let ddragonVersion = '15.1.1'; // Fallback
+
+// Fetch latest version
+fetch('https://ddragon.leagueoflegends.com/api/versions.json')
+  .then(res => res.json())
+  .then(versions => {
+    if (versions && versions.length > 0) {
+      ddragonVersion = versions[0];
+      console.log(`[EloCoach] DDragon Version updated to: ${ddragonVersion}`);
+    }
+  })
+  .catch(err => console.error('[EloCoach] Failed to fetch DDragon version:', err));
 
 // Funções para atualizar seções específicas
 function updateEnemyChampions(players: any[], wards: any[], gameTime: number | null) {
@@ -26,10 +38,8 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
     champDiv.className = `enemy-champion ${player.isDead ? 'dead' : ''}`;
 
     // Adicionar imagem do campeão
-    // Adicionar imagem do campeão
     const champImg = document.createElement('img');
 
-    // Normalização do nome para DDragon
     // Normalização do nome para DDragon
     // Prefer championName (usually clean "Annie", "Aatrox") over rawChampionName
     // Fallback to rawChampionName if championName is missing
@@ -42,11 +52,28 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
     if (safeChampName === 'KogMaw') safeChampName = 'KogMaw';
     if (safeChampName === 'RekSai') safeChampName = 'RekSai';
     if (safeChampName === 'DrMundo') safeChampName = 'DrMundo';
+    if (safeChampName === 'ChoGath') safeChampName = 'Chogath';
+    // Bel'Veth -> Belveth (default replace works)
+    // Kai'Sa -> Kaisa (default replace works)
+    // Kha'Zix -> Khazix (default replace works)
+    // Vel'Koz -> Velkoz (default replace works)
 
-    const ddragonUrl = `https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${safeChampName}.png`;
+    // Nunu & Willump -> Nunu
+    if (safeChampName === 'NunuWillump') safeChampName = 'Nunu';
+
+    // Renata Glasc -> Renata
+    if (safeChampName === 'RenataGlasc') safeChampName = 'Renata';
+
+    // DDragon URL (Dynamic version)
+    const ddragonUrl = `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${safeChampName}.png`;
 
     // Tentativa 2: CommunityDragon (Generic, costuma ser mais permissivo ou usar IDs)
-    const cdragonUrl = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${player.skinID || 0}.png`;
+    // NOTE: CDragon accepts "Annie.png" too! Let's try name-based fallback first.
+    // const cdragonUrl = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${player.skinID || 0}.png`;
+    // const cdragonNameUrl = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${safeChampName.toLowerCase()}.png`;
+
+    // Log intent
+    // (window as any).electronAPI.log(`Loading image for ${nameToUse} -> ${safeChampName} (${ddragonUrl})`);
 
     champImg.src = ddragonUrl;
     champImg.style.width = '20px';
@@ -54,15 +81,22 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
     champImg.style.borderRadius = '2px';
     champImg.setAttribute('data-fallback-index', '0');
 
+    champImg.onload = () => {
+      (window as any).electronAPI.log(`[IMG OK] Loaded ${champImg.src}`);
+    };
+
     // Error handler for fallback sequence
     champImg.onerror = () => {
       const fallbackIndex = parseInt(champImg.getAttribute('data-fallback-index') || '0');
       if (fallbackIndex === 0) {
-        console.warn(`[EloCoach] Falha DDragon (${ddragonUrl}). Tentando CDragon.`);
-        champImg.src = cdragonUrl;
+        (window as any).electronAPI.log(`[IMG FAIL] DDragon failed for ${safeChampName} (${ddragonUrl}). Trying CDragon (Name).`);
+        champImg.src = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${safeChampName}.png`; // Try explicit name on CDragon? No, usually ID. But sometimes name works on other CDNs. 
+        // Actually, let's look for a better fallback. 
+        // Using "generic" avatar if all else fails.
         champImg.setAttribute('data-fallback-index', '1');
       } else if (fallbackIndex === 1) {
-        console.warn(`[EloCoach] Falha CDragon (${cdragonUrl}). Usando placeholder.`);
+        // Try placeholder
+        (window as any).electronAPI.log(`[IMG FAIL] CDragon failed for ${safeChampName}. Using placeholder.`);
         champImg.src = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg';
         champImg.setAttribute('data-fallback-index', '2');
       }

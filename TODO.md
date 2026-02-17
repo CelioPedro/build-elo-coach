@@ -41,4 +41,4 @@
 - Priorizar compliance com Riot: Nunca ler memória, só API oficial
 - Manter arquitetura modular: RiotProvider, TacticalEngine, UIController
 - Testar em contas não-premium para evitar bans
-- Documentar decisões técnicas no README.md
+- [x] Documentar decisões técnicas no README.md

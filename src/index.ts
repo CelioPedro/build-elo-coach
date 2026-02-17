@@ -50,6 +50,11 @@ function createMainWindow(): void {
     win?.setIgnoreMouseEvents(ignore, options);
   });
 
+  // Log from renderer
+  ipcMain.on('renderer-log', (event, message) => {
+    console.log(`[RENDERER] ${message}`);
+  });
+
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow?.webContents.send('game-update', {
@@ -144,8 +149,10 @@ async function updateGameData(): Promise<void> {
     let error: string | null = null;
     let errorType: string | null = null;
 
-    // Check for connection errors if not active
+    // If we are not active, check if we have a connection error
     if (gameState === 'not_active' && provider instanceof RiotProvider) {
+
+
       if (provider.lastError) {
         const errStr = provider.lastError;
         console.log('[DEBUG] Last Error:', errStr);
