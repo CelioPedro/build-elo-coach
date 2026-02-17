@@ -171,15 +171,6 @@ function updateUI(data: {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EloCoach inicializado');
 
-  // Debug Step 2: JS Executed
-  const statusEl = document.getElementById('game-status');
-  if (statusEl) statusEl.innerHTML = "JS STARTED (Waiting for IPC...)<br><span style='color: yellow'>Renderer Running</span>";
-
-  // Global Error Handler to show crashes on UI
-  window.onerror = function (message, source, lineno, colno, error) {
-    if (statusEl) statusEl.innerHTML = `JS CRASH: ${message}<br>${error}`;
-  };
-
   // Lógica de Click-Through para elementos interativos
   const interactiveElements = [document.querySelector('.coach-hud')];
 
@@ -196,13 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Escutar atualizações do main process via preload
   if ((window as any).electronAPI) {
     (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
-      // Debug Step 3: IPC Received (Only show once to confirm connection)
-      if (!statusEl?.textContent?.includes('IPC')) {
-        console.log('First IPC received');
-        // We won't overwrite here if data.error exists, but strictly for debug:
-        // if (statusEl) statusEl.innerHTML = "IPC RECEIVED (Processing...)";
-      }
-
       console.log('Recebido game-update:', data);
       if (data.error) {
         // Format specific error messages for better user feedback
@@ -226,7 +210,5 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI(data);
       }
     });
-  } else {
-    if (statusEl) statusEl.innerHTML = "FATAL: electronAPI missing!<br>Preload failed?";
   }
 });

@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startSimulation: () => ipcRenderer.invoke('start-simulation'),
   stopSimulation: () => ipcRenderer.invoke('stop-simulation'),
   setIgnoreMouseEvents: (ignore: boolean, options?: any) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
+  log: (message: string) => ipcRenderer.send('renderer-log', message),
 });
