@@ -122,65 +122,96 @@ ipcMain.handle('stop-simulation', () => {
   }
 });
 
-
-
 // Função para atualizar dados do jogo
 async function updateGameData(): Promise<void> {
   try {
     const gameState = await provider.getGameState();
     const gameTime = await provider.getGameTime();
 
+    // Debug log to trace state
+    console.log(`[DEBUG] GameState: ${gameState}, GameTime: ${gameTime}`);
+
+    // Default values
     let waveTime = '--:--';
     let isSiege = false;
     let gankRisk: 'low' | 'medium' | 'high' = 'low';
     let gankHypothesis = 'Aguardando partida...';
     let junglerName = 'Desconhecido';
+    let players: any[] = [];
+    let wards: any[] = [];
+    let objectives: any[] = [];
+    let lanePressures: any[] = [];
+    let error: string | null = null;
+    let errorType: string | null = null;
 
-    if (gameState === 'in_game' && gameTime !== null) {
-      const players = await provider.getPlayerList();
-      junglerTracker.updateJunglerState(players);
+    // Check for connection errors if not active
+    if (gameState === 'not_active' && provider instanceof RiotProvider) {
+      if (provider.lastError) {
+        const errStr = provider.lastError;
+        console.log('[DEBUG] Last Error:', errStr);
+        if (errStr.includes('ECONNREFUSED')) {
+          error = errStr;
+          errorType = 'connect_refused';
+        } else if (errStr.includes('Timeout')) {
+          error = errStr;
+          errorType = 'timeout';
+        }
+      }
+    }
 
-      const junglerState = junglerTracker.getJunglerState();
-      junglerName = junglerState?.championName || 'Desconhecido';
+    // Process game data if active (InGame or Loading)
+    // Relaxed check: Allow null gameTime (use 0) to ensure UI updates during loading/glitches
+    if (gameState === 'in_game' || gameState === 'loading') {
+      try {
+        players = await provider.getPlayerList();
 
-      // Gather game factors
-      const wards = await provider.getWards();
-      const objectives = await provider.getObjectives();
-      const lanePressures = await provider.getLanePressures();
+        if (players.length > 0) {
+          // Debug logging for champion names
+          console.log('[DEBUG] First Player:', JSON.stringify(players[0]));
+          console.log(`[DEBUG] Champion: ${players[0].championName}, Raw: ${players[0].rawChampionName}`);
+        }
 
-      const gameFactors: GameFactors = {
-        junglerState,
-        wards,
-        objectives,
-        lanePressures,
-        gameTime
-      };
+        // Update jungler tracker
+        junglerTracker.updateJunglerState(players);
+        const junglerState = junglerTracker.getJunglerState();
+        junglerName = junglerState?.championName || 'Desconhecido';
 
-      // Generate hypothesis
-      const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
-      gankRisk = hypothesisResult.risk;
-      gankHypothesis = hypothesisResult.hypothesis;
+        wards = await provider.getWards();
+        objectives = await provider.getObjectives();
+        lanePressures = await provider.getLanePressures();
 
-      const waveInfo = TacticalEngine.calculateNextWave(gameTime);
-      waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
-      isSiege = waveInfo.isSiege;
+        // Calculate strategies if we have time
+        const safeGameTime = gameTime || 0;
 
-      consecutiveErrors = 0;
+        const gameFactors: GameFactors = {
+          junglerState,
+          wards,
+          objectives,
+          lanePressures,
+          gameTime: safeGameTime
+        };
+
+        const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
+        gankRisk = hypothesisResult.risk;
+        gankHypothesis = hypothesisResult.hypothesis;
+
+        const waveInfo = TacticalEngine.calculateNextWave(safeGameTime);
+        waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
+        isSiege = waveInfo.isSiege;
+
+        consecutiveErrors = 0;
+      } catch (innerError) {
+        console.error('Error processing game data:', innerError);
+      }
     } else {
-      // Game not active, just wait. Do not increment errors.
       consecutiveErrors = 0;
     }
 
-    // Enviar dados para a interface
+    // Send payload to renderer
     if (mainWindow && !mainWindow.isDestroyed()) {
-      const players = gameState === 'in_game' ? await provider.getPlayerList() : [];
-      const wards = gameState === 'in_game' ? await provider.getWards() : [];
-      const objectives = gameState === 'in_game' ? await provider.getObjectives() : [];
-      const lanes = gameState === 'in_game' ? await provider.getLanePressures() : [];
-
-      mainWindow.webContents.send('game-update', {
+      const payload = {
         gameState,
-        gameTime,
+        gameTime: gameTime || 0,
         waveTime,
         isSiege,
         gankRisk,
@@ -189,19 +220,33 @@ async function updateGameData(): Promise<void> {
         players,
         wards,
         objectives,
-        lanePressures: lanes,
-        error: null // Clear previous errors
-      });
+        lanePressures,
+        error,
+        errorType
+      };
+
+      // Log payload for debugging if needed
+      if (gameState !== 'not_active') {
+        // console.log('[DEBUG] Sending Payload:', JSON.stringify(payload));
+      }
+
+      mainWindow.webContents.send('game-update', payload);
     }
+
   } catch (error) {
     console.error('Erro no monitoramento:', error);
     if (mainWindow && !mainWindow.isDestroyed()) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      let errorType = 'unknown';
+      if (errorMsg.includes('ECONNREFUSED')) errorType = 'connect_refused';
+      if (errorMsg.includes('Timeout')) errorType = 'timeout';
+      if (errorMsg.includes('Status Code: 404')) errorType = 'not_found';
+
       mainWindow.webContents.send('game-update', {
-        error: error instanceof Error ? error.message : String(error)
+        error: errorMsg,
+        errorType: errorType
       });
     }
-    // Do not increment consecutiveErrors to keep retrying
-    // consecutiveErrors++;
   }
 }
 

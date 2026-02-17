@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ddragon.leagueoflegends.com https://raw.communitydragon.org; connect-src 'self' https://127.0.0.1:2999">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ddragon.leagueoflegends.com https://raw.communitydragon.org; connect-src 'self' https://127.0.0.1:2999">
   <title>EloCoach</title>
   <style>
     body {
@@ -151,17 +151,17 @@
 
 <body>
   <div class="coach-hud">
-    <div id="wave-section" class="section">
+    <div id="wave-section" class="section" style="display: none;">
       <div class="label">Próxima Wave</div>
       <div id="wave-timer" class="timer">--:--</div>
     </div>
-    <div id="gank-section" class="section">
+    <div id="gank-section" class="section" style="display: none;">
       <div class="label">Risco de Gank</div>
       <div id="gank-alert" class="alert seguro">Seguro</div>
       <div id="gank-hypothesis" class="status" style="font-size: 8px; margin-top: 5px;"></div>
     </div>
-    <div id="game-status" class="status">Aguardando partida...</div>
-    <div id="jungler-info" class="jungler">Jungler: Desconhecido</div>
+    <div id="game-status" class="status">HTML LOADED (Waiting for JS...)</div>
+    <div id="jungler-info" class="jungler" style="display: none;">Jungler: Desconhecido</div>
     <div id="enemy-team" class="enemy-team" style="display: none;">
       <div class="label">Inimigos</div>
       <div id="enemy-champions" class="enemy-champions"></div>

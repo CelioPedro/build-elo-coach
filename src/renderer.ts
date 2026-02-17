@@ -30,8 +30,19 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
     const champImg = document.createElement('img');
 
     // Normalização do nome para DDragon
-    // Tentativa 1: DDragon com rawChampionName sanitizado
-    const safeChampName = player.rawChampionName.replace(/[^a-zA-Z0-9]/g, '');
+    // Normalização do nome para DDragon
+    // Prefer championName (usually clean "Annie", "Aatrox") over rawChampionName
+    // Fallback to rawChampionName if championName is missing
+    let nameToUse = player.championName || player.rawChampionName || '';
+    let safeChampName = nameToUse.replace(/[^a-zA-Z0-9]/g, '');
+
+    // Handle specific DDragon naming exceptions
+    if (safeChampName === 'Wukong') safeChampName = 'MonkeyKing';
+    if (safeChampName === 'FiddleSticks') safeChampName = 'Fiddlesticks';
+    if (safeChampName === 'KogMaw') safeChampName = 'KogMaw';
+    if (safeChampName === 'RekSai') safeChampName = 'RekSai';
+    if (safeChampName === 'DrMundo') safeChampName = 'DrMundo';
+
     const ddragonUrl = `https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${safeChampName}.png`;
 
     // Tentativa 2: CommunityDragon (Generic, costuma ser mais permissivo ou usar IDs)
@@ -102,7 +113,8 @@ function updateUI(data: {
 }) {
   const { gameState, gameTime, waveTime, isSiege, gankRisk, gankHypothesis, junglerName, players, wards, objectives, lanePressures } = data;
 
-  if (gameState === 'in_game' && gameTime !== null) {
+  // Show UI if in_game OR loading (so we see the HUD during load/early game)
+  if ((gameState === 'in_game' || gameState === 'loading') && gameTime !== null) {
     if (!isGameActive) {
       console.log('🎮 Jogo detectado!');
       isGameActive = true;
@@ -159,6 +171,15 @@ function updateUI(data: {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EloCoach inicializado');
 
+  // Debug Step 2: JS Executed
+  const statusEl = document.getElementById('game-status');
+  if (statusEl) statusEl.innerHTML = "JS STARTED (Waiting for IPC...)<br><span style='color: yellow'>Renderer Running</span>";
+
+  // Global Error Handler to show crashes on UI
+  window.onerror = function (message, source, lineno, colno, error) {
+    if (statusEl) statusEl.innerHTML = `JS CRASH: ${message}<br>${error}`;
+  };
+
   // Lógica de Click-Through para elementos interativos
   const interactiveElements = [document.querySelector('.coach-hud')];
 
@@ -173,14 +194,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Escutar atualizações do main process via preload
-  (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
-    console.log('Recebido game-update:', data);
-    if (data.error) {
-      gameStatus.textContent = `Erro: ${data.error}`;
-      gameStatus.style.color = '#ff4444';
-    } else {
-      gameStatus.style.color = '#a09b8c';
-      updateUI(data);
-    }
-  });
+  if ((window as any).electronAPI) {
+    (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
+      // Debug Step 3: IPC Received (Only show once to confirm connection)
+      if (!statusEl?.textContent?.includes('IPC')) {
+        console.log('First IPC received');
+        // We won't overwrite here if data.error exists, but strictly for debug:
+        // if (statusEl) statusEl.innerHTML = "IPC RECEIVED (Processing...)";
+      }
+
+      console.log('Recebido game-update:', data);
+      if (data.error) {
+        // Format specific error messages for better user feedback
+        let statusHtml = `Erro: ${data.error}`;
+        let color = '#ff4444';
+
+        if (data.errorType === 'connect_refused') {
+          statusHtml = 'API Offline (Jogo Fechado?)<br><span style="font-size: 8px; color: #aaa;">Abra o LoL e entre na partida.</span>';
+          color = '#ffaa00'; // Orange for warning
+        } else if (data.errorType === 'timeout') {
+          statusHtml = 'Erro: Timeout API<br><span style="font-size: 8px; color: #aaa;">API lenta ou travada.</span>';
+        } else if (data.errorType === 'not_found') {
+          statusHtml = 'Aguardando partida...<br><span style="font-size: 8px; color: #666;">Jogo ainda não iniciado (404)</span>';
+          color = '#a09b8c';
+        }
+
+        gameStatus.innerHTML = statusHtml;
+        gameStatus.style.color = color;
+      } else {
+        gameStatus.style.color = '#a09b8c';
+        updateUI(data);
+      }
+    });
+  } else {
+    if (statusEl) statusEl.innerHTML = "FATAL: electronAPI missing!<br>Preload failed?";
+  }
 });
