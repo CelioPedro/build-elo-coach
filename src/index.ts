@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import * as https from 'https';
 import { RiotProvider } from './providers/riotProvider';
 import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
@@ -33,6 +34,8 @@ function createMainWindow(): void {
       nodeIntegration: false,
       contextIsolation: true,
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      webSecurity: false,
+      allowRunningInsecureContent: true
     },
   });
 
@@ -84,7 +87,23 @@ app.on('ready', () => {
   createMainWindow();
 
   // Iniciar monitoramento do jogo
+  // Iniciar monitoramento do jogo
   startGameMonitoring();
+
+  // Test Connectivity from Main Process
+  const https = require('https');
+  const ddragonUrl = 'https://ddragon.leagueoflegends.com/cdn/15.1.1/data/en_US/champion.json';
+  console.log(`[MAIN] Testing connectivity to ${ddragonUrl}...`);
+  https.get(ddragonUrl, (res: any) => {
+    console.log(`[MAIN] Connectivity Test: Status ${res.statusCode}`);
+    if (res.statusCode === 200) {
+      console.log('[MAIN] SUCCESS: Main process can reach DDragon.');
+    } else {
+      console.log('[MAIN] FAIL: Main process returned non-200.');
+    }
+  }).on('error', (e: any) => {
+    console.log(`[MAIN] FAIL: Connection error: ${e.message}`);
+  });
 });
 
 // Quando todas as janelas forem fechadas
@@ -101,6 +120,34 @@ app.on('activate', () => {
 });
 
 // IPC handlers for simulation
+ipcMain.handle('fetch-external', async (event, url, type) => {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, (res) => {
+      const chunks: any[] = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            if (type === 'json') {
+              resolve(JSON.parse(buffer.toString()));
+            } else {
+              // Return base64 for images
+              resolve(buffer.toString('base64'));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        } else {
+          reject(new Error(`Status: ${res.statusCode}`));
+        }
+      });
+    });
+    req.on('error', (err) => reject(err));
+    req.end();
+  });
+});
+
 ipcMain.handle('start-simulation', () => {
   if (provider instanceof MockProvider) {
     provider.startSimulation();
