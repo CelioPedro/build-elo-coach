@@ -15,8 +15,8 @@
       background: transparent;
       position: fixed;
       top: 0;
-      right: 0;
-      width: 300px;
+      left: 0;
+      width: 100vw;
       height: 100vh;
       pointer-events: none;
     }
@@ -27,10 +27,14 @@
       border-radius: 8px;
       color: #f0e6d2;
       padding: 15px;
-      margin: 20px;
+      width: 260px;
+      position: absolute;
+      top: 20px;
+      right: 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(10px);
       pointer-events: auto;
+      touch-action: none;
     }
 
     .section {
@@ -146,11 +150,39 @@
       margin-top: 2px;
       text-align: center;
     }
+
+    .drag-handle {
+      cursor: grab;
+      font-size: 9px;
+      color: #c8aa6e;
+      text-align: center;
+      user-select: none;
+      border-bottom: 1px solid rgba(200, 170, 110, 0.3);
+      margin: -15px -15px 10px -15px;
+      padding: 8px;
+      border-radius: 6px 6px 0 0;
+      background: rgba(200, 170, 110, 0.08);
+      transition: background 0.2s;
+    }
+
+    .drag-handle:hover {
+      background: rgba(200, 170, 110, 0.15);
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    [data-widget-id].dragging {
+      opacity: 0.85;
+      box-shadow: 0 8px 24px rgba(200, 170, 110, 0.3);
+    }
   </style>
 </head>
 
 <body>
-  <div class="coach-hud">
+  <div class="coach-hud" data-widget-id="coach-hud">
+    <div class="drag-handle">⠿ EloCoach</div>
     <div id="wave-section" class="section" style="display: none;">
       <div class="label">Próxima Wave</div>
       <div id="wave-timer" class="timer">--:--</div>

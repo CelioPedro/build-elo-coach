@@ -13,4 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (ignore: boolean, options?: any) => ipcRenderer.send('set-ignore-mouse-events', ignore, options),
   log: (message: string) => ipcRenderer.send('renderer-log', message),
   fetchExternal: (url: string, type: 'json' | 'image') => ipcRenderer.invoke('fetch-external', url, type),
+  saveWidgetPosition: (id: string, pos: { x: number; y: number }) =>
+    ipcRenderer.invoke('save-widget-position', id, pos),
+  loadWidgetPositions: () => ipcRenderer.invoke('load-widget-positions'),
 });

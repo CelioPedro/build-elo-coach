@@ -1,3 +1,4 @@
+import { initDragManager } from './dragManager';
 
 // Estado global para mapeamento de campeões
 let championMap: Record<string, string> = {};
@@ -266,18 +267,8 @@ function updateUI(data: {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EloCoach inicializado');
 
-  // Lógica de Click-Through para elementos interativos
-  const interactiveElements = [document.querySelector('.coach-hud')];
-
-  interactiveElements.forEach(el => {
-    if (!el) return;
-    el.addEventListener('mouseenter', () => {
-      (window as any).electronAPI.setIgnoreMouseEvents(false);
-    });
-    el.addEventListener('mouseleave', () => {
-      (window as any).electronAPI.setIgnoreMouseEvents(true, { forward: true });
-    });
-  });
+  // Initialize draggable widgets (handles click-through + drag + persistence)
+  initDragManager();
 
   // Escutar atualizações do main process via preload
   if ((window as any).electronAPI) {

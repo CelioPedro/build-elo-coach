@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 import { RiotProvider } from './providers/riotProvider';
 import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
@@ -56,6 +58,34 @@ function createMainWindow(): void {
   // Log from renderer
   ipcMain.on('renderer-log', (event, message) => {
     console.log(`[RENDERER] ${message}`);
+  });
+
+  // Widget position persistence
+  const positionsFile = path.join(app.getPath('userData'), 'widget-positions.json');
+
+  ipcMain.handle('save-widget-position', async (_event, id: string, pos: { x: number; y: number }) => {
+    try {
+      let positions: Record<string, { x: number; y: number }> = {};
+      if (fs.existsSync(positionsFile)) {
+        positions = JSON.parse(fs.readFileSync(positionsFile, 'utf-8'));
+      }
+      positions[id] = pos;
+      fs.writeFileSync(positionsFile, JSON.stringify(positions, null, 2), 'utf-8');
+      console.log(`[Widget] Saved position for ${id}: (${pos.x}, ${pos.y})`);
+    } catch (err) {
+      console.error('[Widget] Failed to save position:', err);
+    }
+  });
+
+  ipcMain.handle('load-widget-positions', async () => {
+    try {
+      if (fs.existsSync(positionsFile)) {
+        return JSON.parse(fs.readFileSync(positionsFile, 'utf-8'));
+      }
+    } catch (err) {
+      console.error('[Widget] Failed to load positions:', err);
+    }
+    return {};
   });
 
   // Enviar dados iniciais para testar
