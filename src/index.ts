@@ -338,5 +338,5 @@ async function updateGameData(): Promise<void> {
 function startGameMonitoring(): void {
   gameUpdateInterval = setInterval(async () => {
     await updateGameData();
-  }, 2000); // Atualizar a cada 2 segundos
+  }, 1000); // Atualizar a cada 1 segundo
 }
