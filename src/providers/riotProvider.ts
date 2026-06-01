@@ -1,14 +1,12 @@
 
 import { Player } from '../contracts/gameData';
+import { GameDataProvider, GameState } from '../contracts/provider';
+import { LanePressure, Objective, Ward } from '../contracts/junglerData';
 import * as https from 'https';
 
-export enum GameState {
-  NotActive = 'not_active',
-  Loading = 'loading',
-  InGame = 'in_game',
-}
+export { GameState };
 
-export class RiotProvider {
+export class RiotProvider implements GameDataProvider {
   private baseUrl = 'https://127.0.0.1:2999/liveclientdata';
   public lastError: string | null = null;
   private agent: https.Agent;
@@ -21,7 +19,7 @@ export class RiotProvider {
     });
   }
 
-  private async fetchJson(url: string): Promise<any> {
+  private async fetchJson<T>(url: string): Promise<T> {
     // console.log(`[RiotProvider] Fetching: ${url}`); // Reduce noise
     return new Promise((resolve, reject) => {
       const req = https.get(url, { agent: this.agent }, (res) => {
@@ -31,7 +29,7 @@ export class RiotProvider {
           try {
             // console.log(`[RiotProvider] Response ${url}: ${res.statusCode} (Length: ${data.length})`);
             if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-              resolve(JSON.parse(data));
+              resolve(JSON.parse(data) as T);
             } else {
               reject(new Error(`Status Code: ${res.statusCode}`));
             }
@@ -58,7 +56,7 @@ export class RiotProvider {
 
     try {
       // Tentar allgamedata primeiro (disponível durante o jogo)
-      await this.fetchJson(`${this.baseUrl}/allgamedata`);
+      await this.fetchJson<unknown>(`${this.baseUrl}/allgamedata`);
       return GameState.InGame;
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
@@ -66,7 +64,7 @@ export class RiotProvider {
 
     try {
       // Se allgamedata falhar, tentar playerlist (disponível na tela de loading)
-      const players = await this.fetchJson(`${this.baseUrl}/playerlist`);
+      const players = await this.fetchJson<Player[]>(`${this.baseUrl}/playerlist`);
       if (players && players.length > 0) return GameState.Loading;
     } catch (error) {
       if (!this.lastError) {
@@ -80,7 +78,7 @@ export class RiotProvider {
   async getGameTime(): Promise<number | null> {
     try {
       // Tentar gamestats primeiro
-      const data = await this.fetchJson(`${this.baseUrl}/gamestats`);
+      const data = await this.fetchJson<{ gameTime?: number }>(`${this.baseUrl}/gamestats`);
       return typeof data.gameTime === 'number' ? data.gameTime : null;
     } catch (error) {
       // Silent fail
@@ -88,7 +86,7 @@ export class RiotProvider {
 
     try {
       // Fallback para allgamedata
-      const data = await this.fetchJson(`${this.baseUrl}/allgamedata`);
+      const data = await this.fetchJson<{ gameData?: { gameTime?: number } }>(`${this.baseUrl}/allgamedata`);
       return typeof data.gameData?.gameTime === 'number' ? data.gameData.gameTime : null;
     } catch (error) {
       // Silent fail
@@ -99,7 +97,7 @@ export class RiotProvider {
 
   async getPlayerList(): Promise<Player[]> {
     try {
-      const data = await this.fetchJson(`${this.baseUrl}/playerlist`);
+      const data = await this.fetchJson<unknown>(`${this.baseUrl}/playerlist`);
       if (Array.isArray(data)) return data as Player[];
       return [];
     } catch (error) {
@@ -110,8 +108,8 @@ export class RiotProvider {
   async getJungler(): Promise<Player | null> {
     const players = await this.getPlayerList();
     return players.find(player =>
-      player.summonerSpells.summonerSpellOne?.displayName?.includes('Smite') ||
-      player.summonerSpells.summonerSpellTwo?.displayName?.includes('Smite')
+      this.hasSmite(player.summonerSpells.summonerSpellOne) ||
+      this.hasSmite(player.summonerSpells.summonerSpellTwo)
     ) || null;
   }
 
@@ -119,18 +117,28 @@ export class RiotProvider {
     return this.getJungler();
   }
 
-  async getWards(): Promise<any[]> {
+  async getWards(): Promise<Ward[]> {
     // Real API doesn't provide ward data
     return [];
   }
 
-  async getObjectives(): Promise<any[]> {
+  async getObjectives(): Promise<Objective[]> {
     // Real API doesn't provide objective data
     return [];
   }
 
-  async getLanePressures(): Promise<any[]> {
+  async getLanePressures(): Promise<LanePressure[]> {
     // Real API doesn't provide lane pressure data
     return [];
+  }
+
+  private hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
+    const spellName = [
+      spell?.name,
+      spell?.displayName,
+      spell?.rawDisplayName
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return spell?.id === 11 || spellName.includes('smite');
   }
 }

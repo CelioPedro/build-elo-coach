@@ -51,10 +51,14 @@ export class JunglerTracker {
   /**
    * Atualiza estado do jungler baseado nos dados dos jogadores
    */
-  updateJunglerState(players: Player[]): void {
-    const jungler = players.find(player =>
-      player.summonerSpells.summonerSpellOne?.id === 11 ||
-      player.summonerSpells.summonerSpellTwo?.id === 11
+  updateJunglerState(players: Player[], targetTeam?: Player['team']): void {
+    const candidates = targetTeam
+      ? players.filter(player => player.team === targetTeam)
+      : players;
+
+    const jungler = candidates.find(player =>
+      JunglerTracker.hasSmite(player.summonerSpells.summonerSpellOne) ||
+      JunglerTracker.hasSmite(player.summonerSpells.summonerSpellTwo)
     );
 
     if (!jungler) {
@@ -82,6 +86,16 @@ export class JunglerTracker {
    */
   getJunglerState(): JunglerState | null {
     return this.junglerState;
+  }
+
+  private static hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
+    const spellName = [
+      spell?.name,
+      spell?.displayName,
+      spell?.rawDisplayName
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return spell?.id === 11 || spellName.includes('smite');
   }
 
   /**

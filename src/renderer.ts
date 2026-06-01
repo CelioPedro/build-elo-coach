@@ -1,9 +1,9 @@
 import { initDragManager } from './dragManager';
 
 // Estado global para mapeamento de campeões
-let championMap: Record<string, string> = {};
+const championMap: Record<string, string> = {};
 // Cache para imagens de campeões (Blob URLs)
-let championImageCache: Record<string, string> = {};
+const championImageCache: Record<string, string> = {};
 
 // Elementos da UI
 const waveTimer = document.getElementById('wave-timer') as HTMLElement;
@@ -19,7 +19,6 @@ const enemyChampions = document.getElementById('enemy-champions') as HTMLElement
 
 // Estado do jogo
 let isGameActive = false;
-let isSimulating = false;
 let ddragonVersion = '15.1.1'; // Fallback
 
 // Fetch latest version and champion data
@@ -62,7 +61,7 @@ let ddragonVersion = '15.1.1'; // Fallback
       }
     }
   })
-  .catch(err => {
+  .catch((err: Error) => {
     (window as any).electronAPI.log(`[EloCoach] Failed to fetch DDragon data: ${err.message}`);
     const statusEl = document.getElementById('game-status');
     // Use 'Data Fail' instead of 'Error' to avoid preventing UI clearance
@@ -127,7 +126,7 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
 
       // Determine names for loading
       const nameToUse = player.championName || player.rawChampionName || '';
-      let safeChampName = nameToUse.replace(/[^a-zA-Z0-9]/g, '');
+      const safeChampName = nameToUse.replace(/[^a-zA-Z0-9]/g, '');
       let imageFilename = `${safeChampName}.png`;
       if (championMap[nameToUse]) imageFilename = championMap[nameToUse];
       else if (championMap[safeChampName]) imageFilename = championMap[safeChampName];

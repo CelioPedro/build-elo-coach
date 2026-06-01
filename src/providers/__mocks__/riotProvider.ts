@@ -51,8 +51,8 @@ export class MockRiotProvider {
       throw new Error('Mock failure');
     }
     return this.mockPlayers.find(player =>
-      player.summonerSpells.summonerSpellOne?.id === 11 ||
-      player.summonerSpells.summonerSpellTwo?.id === 11
+      this.hasSmite(player.summonerSpells.summonerSpellOne) ||
+      this.hasSmite(player.summonerSpells.summonerSpellTwo)
     ) || null;
   }
 
@@ -74,5 +74,15 @@ export class MockRiotProvider {
       circuitBreakerStatus: 'closed',
       isGamePaused: false
     };
+  }
+
+  private hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
+    const spellName = [
+      spell?.name,
+      spell?.displayName,
+      spell?.rawDisplayName
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return spell?.id === 11 || spellName.includes('smite');
   }
 }

@@ -1,16 +1,26 @@
 import { Player } from '../contracts/gameData';
-import { GameState } from './riotProvider';
+import { GameDataProvider, GameState } from '../contracts/provider';
 import { MatchSimulator } from '../logic/matchSimulator';
+import { LanePressure, Objective, Ward } from '../contracts/junglerData';
 
-export class MockProvider {
+interface MockProviderOptions {
+  autoStart?: boolean;
+}
+
+export class MockProvider implements GameDataProvider {
   private mockGameTime = 0;
   private mockGameState: GameState = GameState.NotActive;
   private mockPlayers: Player[] = [];
   private simulator: MatchSimulator | null = null;
   private isSimulating = false;
 
-  constructor() {
+  public lastError: string | null = null;
+
+  constructor(options: MockProviderOptions = {}) {
     this.initializeMockData();
+    if (options.autoStart) {
+      this.startSimulation();
+    }
   }
 
   private initializeMockData(): void {
@@ -98,8 +108,8 @@ export class MockProvider {
 
   async getJungler(): Promise<Player | null> {
     return this.mockPlayers.find(player =>
-      player.summonerSpells.summonerSpellOne?.displayName === 'Smite' ||
-      player.summonerSpells.summonerSpellTwo?.displayName === 'Smite'
+      this.hasSmite(player.summonerSpells.summonerSpellOne) ||
+      this.hasSmite(player.summonerSpells.summonerSpellTwo)
     ) || null;
   }
 
@@ -131,24 +141,34 @@ export class MockProvider {
     return this.isSimulating && this.simulator?.isSimulating() === true;
   }
 
-  async getWards(): Promise<any[]> {
+  async getWards(): Promise<Ward[]> {
     if (this.isSimulating && this.simulator) {
       return this.simulator.getWards();
     }
     return [];
   }
 
-  async getObjectives(): Promise<any[]> {
+  async getObjectives(): Promise<Objective[]> {
     if (this.isSimulating && this.simulator) {
       return this.simulator.getObjectives();
     }
     return [];
   }
 
-  async getLanePressures(): Promise<any[]> {
+  async getLanePressures(): Promise<LanePressure[]> {
     if (this.isSimulating && this.simulator) {
       return this.simulator.getLanePressures();
     }
     return [];
+  }
+
+  private hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
+    const spellName = [
+      spell?.name,
+      spell?.displayName,
+      spell?.rawDisplayName
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return spell?.id === 11 || spellName.includes('smite');
   }
 }

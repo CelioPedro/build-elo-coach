@@ -8,6 +8,7 @@ import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
 import { GameFactors } from './contracts/junglerData';
+import { GameDataProvider } from './contracts/provider';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -16,7 +17,7 @@ declare global {
 }
 
 let mainWindow: BrowserWindow;
-let provider: RiotProvider | MockProvider;
+let provider: GameDataProvider;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
 let gameUpdateInterval: NodeJS.Timeout | null = null;
@@ -108,9 +109,11 @@ function createMainWindow(): void {
 
 // Inicialização da aplicação
 app.on('ready', () => {
-  // Initialize Riot Provider for live data
-  provider = new RiotProvider();
-  // provider = new MockProvider();
+  const providerMode = process.env.ELOCOACH_PROVIDER === 'mock' ? 'mock' : 'riot';
+  provider = providerMode === 'mock'
+    ? new MockProvider({ autoStart: true })
+    : new RiotProvider();
+  console.log(`[MAIN] Data provider: ${providerMode}`);
   junglerTracker = new JunglerTracker();
   gankPredictor = new GankPredictor();
 
@@ -121,7 +124,6 @@ app.on('ready', () => {
   startGameMonitoring();
 
   // Test Connectivity from Main Process
-  const https = require('https');
   const ddragonUrl = 'https://ddragon.leagueoflegends.com/cdn/15.1.1/data/en_US/champion.json';
   console.log(`[MAIN] Testing connectivity to ${ddragonUrl}...`);
   https.get(ddragonUrl, (res: any) => {

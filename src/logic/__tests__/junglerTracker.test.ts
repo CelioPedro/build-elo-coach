@@ -56,7 +56,7 @@ describe('JunglerTracker', () => {
             summonerSpellOne: { id: 11, name: 'Smite' }, // Smite
             summonerSpellTwo: { id: 4, name: 'Flash' }
           },
-          team: ''
+          team: 'ORDER'
         },
         {
           championName: 'Ahri',
@@ -76,7 +76,7 @@ describe('JunglerTracker', () => {
             summonerSpellOne: { id: 4, name: 'Flash' },
             summonerSpellTwo: { id: 3, name: 'Exhaust' }
           },
-          team: ''
+          team: 'CHAOS'
         }
       ];
 
@@ -108,7 +108,7 @@ describe('JunglerTracker', () => {
             summonerSpellOne: { id: 4, name: 'Flash' },
             summonerSpellTwo: { id: 3, name: 'Exhaust' }
           },
-          team: ''
+          team: 'ORDER'
         }
       ];
 
@@ -140,7 +140,7 @@ describe('JunglerTracker', () => {
             summonerSpellOne: { id: 11, name: 'Smite' },
             summonerSpellTwo: { id: 4, name: 'Flash' }
           },
-          team: ''
+          team: 'ORDER'
         }
       ];
 

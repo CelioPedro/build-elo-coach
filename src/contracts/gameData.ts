@@ -21,15 +21,17 @@ export interface Rune {
 }
 
 export interface Runes {
-  keystone: Rune;
-  primaryRuneTree: Rune;
-  secondaryRuneTree: Rune;
+  keystone?: Rune;
+  primaryRuneTree?: Rune;
+  secondaryRuneTree?: Rune;
 }
 
 export interface SummonerSpell {
-  displayName: string;
-  rawDescription: string;
-  rawDisplayName: string;
+  id?: number;
+  name?: string;
+  displayName?: string;
+  rawDescription?: string;
+  rawDisplayName?: string;
 }
 
 export interface SummonerSpells {

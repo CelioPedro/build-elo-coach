@@ -59,6 +59,13 @@ EloCoach is a cross-platform desktop application built with Electron that provid
 npm run start
 ```
 
+### Offline Demo Mode
+```bash
+npm run start:demo
+```
+
+Demo mode uses the built-in mock provider and match simulator, so the overlay can be evaluated without League of Legends installed or running.
+
 ### Production Build
 ```bash
 npm run make
