@@ -1,8 +1,10 @@
 import interact from 'interactjs';
+import { WidgetPosition } from './contracts/ipc';
 
-interface WidgetPosition {
-    x: number;
-    y: number;
+interface DragEventLike {
+    target: HTMLElement;
+    dx: number;
+    dy: number;
 }
 
 /**
@@ -13,7 +15,7 @@ interface WidgetPosition {
  * - Restores saved positions on initialization
  */
 export async function initDragManager(): Promise<void> {
-    const api = (window as any).electronAPI;
+    const api = window.electronAPI;
 
     // Load saved positions
     let savedPositions: Record<string, WidgetPosition> = {};
@@ -26,7 +28,8 @@ export async function initDragManager(): Promise<void> {
     const widgets = document.querySelectorAll<HTMLElement>('[data-widget-id]');
 
     widgets.forEach((widget) => {
-        const widgetId = widget.getAttribute('data-widget-id')!;
+        const widgetId = widget.getAttribute('data-widget-id');
+        if (!widgetId) return;
 
         // Restore saved position
         const saved = savedPositions[widgetId];
@@ -60,11 +63,11 @@ export async function initDragManager(): Promise<void> {
             ],
 
             listeners: {
-                start(event: any) {
+                start(event: DragEventLike) {
                     event.target.classList.add('dragging');
                 },
 
-                move(event: any) {
+                move(event: DragEventLike) {
                     const target = event.target as HTMLElement;
                     const x = (parseFloat(target.getAttribute('data-x') || '0')) + event.dx;
                     const y = (parseFloat(target.getAttribute('data-y') || '0')) + event.dy;
@@ -74,7 +77,7 @@ export async function initDragManager(): Promise<void> {
                     target.setAttribute('data-y', String(y));
                 },
 
-                end(event: any) {
+                end(event: DragEventLike) {
                     event.target.classList.remove('dragging');
 
                     const target = event.target as HTMLElement;
@@ -82,7 +85,7 @@ export async function initDragManager(): Promise<void> {
                     const y = parseFloat(target.getAttribute('data-y') || '0');
 
                     // Persist position
-                    api.saveWidgetPosition(widgetId, { x, y }).catch((err: any) => {
+                    api.saveWidgetPosition(widgetId, { x, y }).catch((err: unknown) => {
                         console.warn(`[DragManager] Failed to save position for ${widgetId}:`, err);
                     });
                 },

@@ -1,4 +1,7 @@
 import { initDragManager } from './dragManager';
+import { Player } from './contracts/gameData';
+import { DataDragonChampionResponse, GameUpdatePayload } from './contracts/ipc';
+import { Position, Ward } from './contracts/junglerData';
 
 // Estado global para mapeamento de campeões
 const championMap: Record<string, string> = {};
@@ -20,26 +23,27 @@ const enemyChampions = document.getElementById('enemy-champions') as HTMLElement
 // Estado do jogo
 let isGameActive = false;
 let ddragonVersion = '15.1.1'; // Fallback
+const electronAPI = window.electronAPI;
 
 // Fetch latest version and champion data
 // Fetch latest version and champion data
 // Use proxy to avoid renderer network issues
-(window as any).electronAPI.fetchExternal('https://ddragon.leagueoflegends.com/api/versions.json', 'json')
-  .then((versions: any) => {
+electronAPI.fetchExternal<string[]>('https://ddragon.leagueoflegends.com/api/versions.json', 'json')
+  .then((versions) => {
     if (versions && versions.length > 0) {
       ddragonVersion = versions[0];
-      (window as any).electronAPI.log(`[EloCoach] DDragon Version updated to: ${ddragonVersion}`);
+      electronAPI.log(`[EloCoach] DDragon Version updated to: ${ddragonVersion}`);
       // Show version in UI for debug
       const statusEl = document.getElementById('game-status');
       if (statusEl) statusEl.setAttribute('data-version', ddragonVersion);
 
       // Fetch champion.json for accurate name mapping
-      return (window as any).electronAPI.fetchExternal(`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/data/en_US/champion.json`, 'json');
+      return electronAPI.fetchExternal<DataDragonChampionResponse>(`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/data/en_US/champion.json`, 'json');
     } else {
       throw new Error('No versions found');
     }
   })
-  .then((data: any) => {
+  .then((data) => {
     if (data && data.data) {
       // Populate championMap
       // DDragon format: data.data["MonkeyKing"] = { id: "MonkeyKing", name: "Wukong", image: { full: "MonkeyKing.png" } ... }
@@ -53,7 +57,7 @@ let ddragonVersion = '15.1.1'; // Fallback
         const safeName = champ.name.replace(/[^a-zA-Z0-9]/g, '');
         championMap[safeName] = champ.image.full;
       });
-      (window as any).electronAPI.log(`[EloCoach] Champion mappings loaded: ${Object.keys(championMap).length} entries`);
+      electronAPI.log(`[EloCoach] Champion mappings loaded: ${Object.keys(championMap).length} entries`);
       const statusEl = document.getElementById('game-status');
       if (statusEl) {
         const currentText = statusEl.innerHTML;
@@ -62,7 +66,7 @@ let ddragonVersion = '15.1.1'; // Fallback
     }
   })
   .catch((err: Error) => {
-    (window as any).electronAPI.log(`[EloCoach] Failed to fetch DDragon data: ${err.message}`);
+    electronAPI.log(`[EloCoach] Failed to fetch DDragon data: ${err.message}`);
     const statusEl = document.getElementById('game-status');
     // Use 'Data Fail' instead of 'Error' to avoid preventing UI clearance
     if (statusEl) statusEl.innerHTML += `<br><span style="font-size:8px;color:#f00;">Data Fail: ${err.message}</span>`;
@@ -85,24 +89,24 @@ async function loadProxyImage(imgElement: HTMLImageElement, imageFilename: strin
     const url = urls[i];
     try {
       // Use fetchExternal for images, expecting 'buffer' type
-      const imageData = await (window as any).electronAPI.fetchExternal(url, 'buffer');
+      const imageData = await electronAPI.fetchExternal<string>(url, 'buffer');
       if (imageData) {
         const dataUri = `data:image/png;base64,${imageData}`;
         championImageCache[imageFilename] = dataUri;
         imgElement.src = dataUri;
-        (window as any).electronAPI.log(`[IMG OK] Loaded ${url} via proxy.`);
+        electronAPI.log(`[IMG OK] Loaded ${url} via proxy.`);
         return;
       }
-    } catch (err: any) {
+    } catch (_err) {
       // Silent fail for expected Fallbacks
     }
   }
   imgElement.src = placeholderUrl;
-  (window as any).electronAPI.log(`[IMG FAIL] All image fallbacks failed for ${imageFilename}.`);
+  electronAPI.log(`[IMG FAIL] All image fallbacks failed for ${imageFilename}.`);
 }
 
 // Funções para atualizar seções específicas
-function updateEnemyChampions(players: any[], wards: any[], gameTime: number | null) {
+function updateEnemyChampions(players: Player[], wards: Ward[], gameTime: number | null) {
   const enemyPlayers = players.filter(p => p.team === 'CHAOS');
   const container = enemyChampions; // existing reference
 
@@ -184,7 +188,7 @@ function updateEnemyChampions(players: any[], wards: any[], gameTime: number | n
   });
 }
 
-function isNearWard(playerPos: any, wardPos: any, range = 1000): boolean {
+function isNearWard(playerPos: Position, wardPos: Position, range = 1000): boolean {
   const dx = playerPos.x - wardPos.x;
   const dy = playerPos.y - wardPos.y;
   return Math.sqrt(dx * dx + dy * dy) <= range;
@@ -193,21 +197,18 @@ function isNearWard(playerPos: any, wardPos: any, range = 1000): boolean {
 
 
 // Função para atualizar UI com dados do jogo
-function updateUI(data: {
-  gameState: string;
-  sessionState?: string;
-  gameTime: number | null;
-  waveTime: string;
-  isSiege: boolean;
-  gankRisk: string;
-  gankHypothesis: string;
-  junglerName: string;
-  players: any[];
-  wards: any[];
-  objectives: any[];
-  lanePressures: any[];
-}) {
-  const { gameState, sessionState, gameTime, waveTime, isSiege, gankRisk, gankHypothesis, junglerName, players, wards, objectives, lanePressures } = data;
+function updateUI(data: GameUpdatePayload) {
+  const {
+    gameState,
+    sessionState,
+    gameTime = null,
+    waveTime = '--:--',
+    isSiege = false,
+    gankRisk = 'low',
+    gankHypothesis = '',
+    players = [],
+    wards = []
+  } = data;
 
   // Show UI if in_game OR loading (so we see the HUD during load/early game)
   if (gameState === 'in_game' || gameState === 'loading') {
@@ -277,8 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initDragManager();
 
   // Escutar atualizações do main process via preload
-  if ((window as any).electronAPI) {
-    (window as any).electronAPI.onGameUpdate((event: any, data: any) => {
+  if (electronAPI) {
+    electronAPI.onGameUpdate((data) => {
       console.log('Recebido game-update:', data);
       if (data.error) {
         // Format specific error messages for better user feedback
