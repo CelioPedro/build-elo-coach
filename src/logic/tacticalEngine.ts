@@ -1,33 +1,48 @@
 export interface WaveInfo {
   timeLeft: number;
   isSiege: boolean;
+  waveNumber: number;
+  spawnTime: number;
+  phase: 'pre_spawn' | 'early' | 'mid' | 'late';
+  composition: {
+    melee: number;
+    caster: number;
+    siege: number;
+    super: number;
+  };
 }
 
-export type GankRisk = 'Seguro' | 'Atenção' | 'Perigo';
+export type GankRisk = 'Seguro' | 'Atencao' | 'Perigo';
 
 export class TacticalEngine {
-  /**
-   * Calcula informações da próxima wave
-   */
+  private static readonly FIRST_WAVE_SPAWN = 65;
+  private static readonly WAVE_INTERVAL = 30;
+  private static readonly MID_SIEGE_START = 905; // 15:05
+  private static readonly LATE_SIEGE_START = 1505; // 25:05
+
   static calculateNextWave(gameTime: number): WaveInfo {
-    const waveInterval = 30; // segundos
-    const siegeStart = 90; // 1:30
-    const siegeInterval = 180; // 3 minutos
+    const normalizedTime = Math.max(0, gameTime);
+    const waveNumber = this.getNextWaveNumber(normalizedTime);
+    const spawnTime = this.getWaveSpawnTime(waveNumber);
+    const timeLeft = Math.max(0, spawnTime - normalizedTime);
+    const isSiege = this.isSiegeWave(waveNumber, spawnTime);
 
-    const nextWave = Math.ceil(gameTime / waveInterval) * waveInterval;
-    const timeLeft = nextWave - gameTime;
-
-    // Verifica se é wave de Siege
-    const isSiege = (nextWave >= siegeStart) && ((nextWave - siegeStart) % siegeInterval === 0);
-
-    return { timeLeft, isSiege };
+    return {
+      timeLeft,
+      isSiege,
+      waveNumber,
+      spawnTime,
+      phase: this.getWavePhase(spawnTime),
+      composition: {
+        melee: 3,
+        caster: 3,
+        siege: isSiege ? 1 : 0,
+        super: 0
+      }
+    };
   }
 
-  /**
-   * Calcula nível de risco de gank baseado no tempo
-   */
   static calculateGankRisk(gameTime: number): GankRisk {
-    // Janelas de alto risco baseadas em timings típicos de gank
     const highRiskWindows = [
       [165, 200], // 2:45 - 3:20
       [345, 380], // 5:45 - 6:20
@@ -51,18 +66,46 @@ export class TacticalEngine {
     }
 
     for (const [start, end] of mediumRiskWindows) {
-      if (gameTime >= start && gameTime <= end) return 'Atenção';
+      if (gameTime >= start && gameTime <= end) return 'Atencao';
     }
 
     return 'Seguro';
   }
 
-  /**
-   * Formata tempo em MM:SS
-   */
   static formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private static getNextWaveNumber(gameTime: number): number {
+    if (gameTime < this.FIRST_WAVE_SPAWN) {
+      return 1;
+    }
+
+    return Math.floor((gameTime - this.FIRST_WAVE_SPAWN) / this.WAVE_INTERVAL) + 2;
+  }
+
+  private static getWaveSpawnTime(waveNumber: number): number {
+    return this.FIRST_WAVE_SPAWN + ((waveNumber - 1) * this.WAVE_INTERVAL);
+  }
+
+  private static isSiegeWave(waveNumber: number, spawnTime: number): boolean {
+    if (spawnTime >= this.LATE_SIEGE_START) {
+      return true;
+    }
+
+    if (spawnTime >= this.MID_SIEGE_START) {
+      return waveNumber % 2 === 1;
+    }
+
+    return waveNumber % 3 === 0;
+  }
+
+  private static getWavePhase(spawnTime: number): WaveInfo['phase'] {
+    if (spawnTime < this.FIRST_WAVE_SPAWN) return 'pre_spawn';
+    if (spawnTime >= this.LATE_SIEGE_START) return 'late';
+    if (spawnTime >= this.MID_SIEGE_START) return 'mid';
+    return 'early';
   }
 }
