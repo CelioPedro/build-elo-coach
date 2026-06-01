@@ -69,7 +69,7 @@ export interface GameEvent {
   EventID: number;
   EventName: string;
   EventTime: number;
-  // Outros campos dependem do tipo de evento
+  [key: string]: unknown;
 }
 
 export interface GameData {

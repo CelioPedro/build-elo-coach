@@ -1,7 +1,8 @@
 
-import { Player } from '../contracts/gameData';
+import { GameData, Player } from '../contracts/gameData';
 import { GameDataProvider, GameState, Telemetry } from '../contracts/provider';
 import { LanePressure, Objective, Ward } from '../contracts/junglerData';
+import { ObjectiveTracker } from '../logic/objectiveTracker';
 import * as https from 'https';
 
 export { GameState };
@@ -138,7 +139,20 @@ export class RiotProvider implements GameDataProvider {
   }
 
   async getObjectiveTelemetry(): Promise<Telemetry<Objective[]>> {
-    return this.unavailableTelemetry('event-api', 'Objective state is not derived yet; use game events in a later step.');
+    try {
+      const data = await this.fetchJson<Partial<GameData>>(`${this.baseUrl}/allgamedata`);
+      const events = data.events?.Events || [];
+
+      return {
+        status: 'available',
+        source: 'event-api',
+        value: ObjectiveTracker.fromEvents(events),
+        capturedAt: Date.now(),
+        message: 'Objective telemetry is derived from kill events only.'
+      };
+    } catch (error) {
+      return this.unavailableTelemetry('event-api', 'Objective events are not available right now.');
+    }
   }
 
   async getLanePressureTelemetry(): Promise<Telemetry<LanePressure[]>> {
