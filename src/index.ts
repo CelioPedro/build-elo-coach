@@ -7,8 +7,9 @@ import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
+import { GameSessionTracker, ProviderMode } from './logic/gameSessionTracker';
 import { GameFactors, LanePressure, Objective, Ward } from './contracts/junglerData';
-import { GameDataProvider, Telemetry } from './contracts/provider';
+import { GameDataProvider, GameState, Telemetry } from './contracts/provider';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -18,6 +19,8 @@ declare global {
 
 let mainWindow: BrowserWindow;
 let provider: GameDataProvider;
+let providerMode: ProviderMode = 'riot';
+let sessionTracker: GameSessionTracker;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
 let gameUpdateInterval: NodeJS.Timeout | null = null;
@@ -109,11 +112,12 @@ function createMainWindow(): void {
 
 // Inicialização da aplicação
 app.on('ready', () => {
-  const providerMode = process.env.ELOCOACH_PROVIDER === 'mock' ? 'mock' : 'riot';
+  providerMode = process.env.ELOCOACH_PROVIDER === 'mock' ? 'mock' : 'riot';
   provider = providerMode === 'mock'
     ? new MockProvider({ autoStart: true })
     : new RiotProvider();
   console.log(`[MAIN] Data provider: ${providerMode}`);
+  sessionTracker = new GameSessionTracker(providerMode);
   junglerTracker = new JunglerTracker();
   gankPredictor = new GankPredictor();
 
@@ -211,6 +215,7 @@ async function updateGameData(): Promise<void> {
   try {
     const gameState = await provider.getGameState();
     const gameTime = await provider.getGameTime();
+    const session = sessionTracker.update({ gameState, gameTime });
 
     // Debug log to trace state
     console.log(`[DEBUG] GameState: ${gameState}, GameTime: ${gameTime}`);
@@ -232,7 +237,7 @@ async function updateGameData(): Promise<void> {
     let errorType: string | null = null;
 
     // If we are not active, check if we have a connection error
-    if (gameState === 'not_active' && provider instanceof RiotProvider) {
+    if (gameState === GameState.NotActive && provider instanceof RiotProvider) {
 
 
       if (provider.lastError) {
@@ -250,7 +255,7 @@ async function updateGameData(): Promise<void> {
 
     // Process game data if active (InGame or Loading)
     // Relaxed check: Allow null gameTime (use 0) to ensure UI updates during loading/glitches
-    if (gameState === 'in_game' || gameState === 'loading') {
+    if (gameState === GameState.InGame || gameState === GameState.Loading) {
       try {
         players = await provider.getPlayerList();
 
@@ -272,27 +277,32 @@ async function updateGameData(): Promise<void> {
         objectives = objectiveTelemetry.value || [];
         lanePressures = lanePressureTelemetry.value || [];
 
-        // Calculate strategies if we have time
-        const safeGameTime = gameTime || 0;
+        const effectiveGameTime = session.gameTime;
 
         const gameFactors: GameFactors = {
           junglerState,
           wards,
           objectives,
           lanePressures,
-          gameTime: safeGameTime,
+          gameTime: effectiveGameTime || 0,
           wardTelemetry,
           objectiveTelemetry,
           lanePressureTelemetry
         };
 
-        const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
-        gankRisk = hypothesisResult.risk;
-        gankHypothesis = hypothesisResult.hypothesis;
+        if (effectiveGameTime !== null) {
+          const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
+          gankRisk = hypothesisResult.risk;
+          gankHypothesis = hypothesisResult.hypothesis;
 
-        const waveInfo = TacticalEngine.calculateNextWave(safeGameTime);
-        waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
-        isSiege = waveInfo.isSiege;
+          const waveInfo = TacticalEngine.calculateNextWave(effectiveGameTime);
+          waveTime = TacticalEngine.formatTime(waveInfo.timeLeft);
+          isSiege = waveInfo.isSiege;
+        } else {
+          gankHypothesis = session.state === 'loading'
+            ? 'Carregando partida...'
+            : 'Aguardando game time confiável...';
+        }
 
         consecutiveErrors = 0;
       } catch (innerError) {
@@ -306,7 +316,10 @@ async function updateGameData(): Promise<void> {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const payload = {
         gameState,
-        gameTime: gameTime || 0,
+        sessionState: session.state,
+        isClockAdvancing: session.isClockAdvancing,
+        gameTime: session.gameTime,
+        rawGameTime: gameTime,
         waveTime,
         isSiege,
         gankRisk,
@@ -326,7 +339,7 @@ async function updateGameData(): Promise<void> {
       };
 
       // Log payload for debugging if needed
-      if (gameState !== 'not_active') {
+      if (gameState !== GameState.NotActive) {
         // console.log('[DEBUG] Sending Payload:', JSON.stringify(payload));
       }
 

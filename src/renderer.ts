@@ -195,6 +195,7 @@ function isNearWard(playerPos: any, wardPos: any, range = 1000): boolean {
 // Função para atualizar UI com dados do jogo
 function updateUI(data: {
   gameState: string;
+  sessionState?: string;
   gameTime: number | null;
   waveTime: string;
   isSiege: boolean;
@@ -206,10 +207,10 @@ function updateUI(data: {
   objectives: any[];
   lanePressures: any[];
 }) {
-  const { gameState, gameTime, waveTime, isSiege, gankRisk, gankHypothesis, junglerName, players, wards, objectives, lanePressures } = data;
+  const { gameState, sessionState, gameTime, waveTime, isSiege, gankRisk, gankHypothesis, junglerName, players, wards, objectives, lanePressures } = data;
 
   // Show UI if in_game OR loading (so we see the HUD during load/early game)
-  if ((gameState === 'in_game' || gameState === 'loading') && gameTime !== null) {
+  if (gameState === 'in_game' || gameState === 'loading') {
     if (!isGameActive) {
       console.log('🎮 Jogo detectado!');
       isGameActive = true;
@@ -235,6 +236,12 @@ function updateUI(data: {
 
     if (gameStatus.textContent?.includes('Erro')) {
       // Keep error message if present
+    } else if (sessionState === 'stalled') {
+      gameStatus.textContent = 'Tempo pausado ou travado';
+    } else if (sessionState === 'reconnecting') {
+      gameStatus.textContent = 'Reconectando telemetria...';
+    } else if (sessionState === 'demo') {
+      gameStatus.textContent = 'Demo offline';
     } else {
       gameStatus.textContent = ''; // Limpar "Aguardando partida"
     }
