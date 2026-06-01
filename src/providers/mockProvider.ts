@@ -1,5 +1,5 @@
 import { Player } from '../contracts/gameData';
-import { GameDataProvider, GameState } from '../contracts/provider';
+import { GameDataProvider, GameState, Telemetry } from '../contracts/provider';
 import { MatchSimulator } from '../logic/matchSimulator';
 import { LanePressure, Objective, Ward } from '../contracts/junglerData';
 
@@ -142,24 +142,39 @@ export class MockProvider implements GameDataProvider {
   }
 
   async getWards(): Promise<Ward[]> {
-    if (this.isSimulating && this.simulator) {
-      return this.simulator.getWards();
-    }
-    return [];
+    const telemetry = await this.getWardTelemetry();
+    return telemetry.value || [];
   }
 
   async getObjectives(): Promise<Objective[]> {
-    if (this.isSimulating && this.simulator) {
-      return this.simulator.getObjectives();
-    }
-    return [];
+    const telemetry = await this.getObjectiveTelemetry();
+    return telemetry.value || [];
   }
 
   async getLanePressures(): Promise<LanePressure[]> {
+    const telemetry = await this.getLanePressureTelemetry();
+    return telemetry.value || [];
+  }
+
+  async getWardTelemetry(): Promise<Telemetry<Ward[]>> {
     if (this.isSimulating && this.simulator) {
-      return this.simulator.getLanePressures();
+      return this.simulatedTelemetry(this.simulator.getWards());
     }
-    return [];
+    return this.simulatedTelemetry([]);
+  }
+
+  async getObjectiveTelemetry(): Promise<Telemetry<Objective[]>> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulatedTelemetry(this.simulator.getObjectives());
+    }
+    return this.simulatedTelemetry([]);
+  }
+
+  async getLanePressureTelemetry(): Promise<Telemetry<LanePressure[]>> {
+    if (this.isSimulating && this.simulator) {
+      return this.simulatedTelemetry(this.simulator.getLanePressures());
+    }
+    return this.simulatedTelemetry([]);
   }
 
   private hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
@@ -170,5 +185,14 @@ export class MockProvider implements GameDataProvider {
     ].filter(Boolean).join(' ').toLowerCase();
 
     return spell?.id === 11 || spellName.includes('smite');
+  }
+
+  private simulatedTelemetry<T>(value: T): Telemetry<T> {
+    return {
+      status: 'simulated',
+      source: 'simulated',
+      value,
+      capturedAt: Date.now()
+    };
   }
 }

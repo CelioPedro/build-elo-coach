@@ -98,6 +98,7 @@ export class GankPredictor {
    */
   generateHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
     const { junglerState, wards, objectives, lanePressures, gameTime } = factors;
+    const hasWardData = this.hasUsableTelemetry(factors.wardTelemetry);
 
     // Cenário base: sem jungler visível
     if (!junglerState || !junglerState.isVisible) {
@@ -105,10 +106,12 @@ export class GankPredictor {
     }
 
     // Cenário: JG visto por ward
-    const nearbyWards = wards.filter(ward =>
-      this.distance(junglerState.position, ward.position) < 2000 &&
-      gameTime - ward.placedAt < 30 // Ward recente
-    );
+    const nearbyWards = hasWardData
+      ? wards.filter(ward =>
+        this.distance(junglerState.position, ward.position) < 2000 &&
+        gameTime - ward.placedAt < 30 // Ward recente
+      )
+      : [];
 
     if (nearbyWards.length > 0) {
       return this.generateWardSightedHypothesis(factors, nearbyWards);
@@ -120,11 +123,15 @@ export class GankPredictor {
 
   private generateInvisibleJunglerHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
     const { objectives, lanePressures, gameTime } = factors;
+    const hasObjectiveData = this.hasUsableTelemetry(factors.objectiveTelemetry);
+    const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
 
     // Verificar objetivos recentes
-    const recentObjectives = objectives.filter(obj =>
-      obj.killedAt && (gameTime - obj.killedAt) < 60 // Morto há menos de 1min
-    );
+    const recentObjectives = hasObjectiveData
+      ? objectives.filter(obj =>
+        obj.killedAt && (gameTime - obj.killedAt) < 60 // Morto há menos de 1min
+      )
+      : [];
 
     if (recentObjectives.length > 0) {
       const obj = recentObjectives[0];
@@ -140,7 +147,9 @@ export class GankPredictor {
     }
 
     // Verificar pressão de lanes
-    const pushingLanes = lanePressures.filter(lp => lp.pressure === 'pushing');
+    const pushingLanes = hasLanePressureData
+      ? lanePressures.filter(lp => lp.pressure === 'pushing')
+      : [];
     if (pushingLanes.length > 0) {
       const lane = pushingLanes[0];
       return {
@@ -149,14 +158,23 @@ export class GankPredictor {
       };
     }
 
+    if (!hasObjectiveData && !hasLanePressureData) {
+      return {
+        risk: 'low',
+        hypothesis: 'Telemetria tática limitada. Sem sinais confiáveis de objetivo ou pressão de lane.'
+      };
+    }
+
     return {
       risk: 'low',
-      hypothesis: 'JG não visto recentemente. Objetivos intactos. Risco baixo de gank.'
+      hypothesis: 'JG não visto recentemente. Sem sinais recentes de pressão ou objetivo.'
     };
   }
 
   private generateWardSightedHypothesis(factors: GameFactors, nearbyWards: any[]): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
     const { junglerState, objectives, lanePressures } = factors;
+    const hasObjectiveData = this.hasUsableTelemetry(factors.objectiveTelemetry);
+    const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
 
     // Verificar região do JG
     const region = junglerState!.region;
@@ -166,20 +184,19 @@ export class GankPredictor {
     else side = 'MID';
 
     // Verificar objetivos
-    const dragonAlive = objectives.some(obj => obj.type === ObjectiveType.DRAGON && obj.alive);
-    const baronAlive = objectives.some(obj => obj.type === ObjectiveType.BARON && obj.alive);
+    const dragonAlive = hasObjectiveData && objectives.some(obj => obj.type === ObjectiveType.DRAGON && obj.alive);
 
     // Verificar pressão oposta
     let opposingPressure = '';
     if (side === 'TOP SIDE') {
-      const botPressure = lanePressures.find(lp => lp.lane === Lane.BOT);
+      const botPressure = hasLanePressureData ? lanePressures.find(lp => lp.lane === Lane.BOT) : undefined;
       if (botPressure?.pressure === 'pushing') opposingPressure = ', bot avançada';
     } else if (side === 'BOT SIDE') {
-      const topPressure = lanePressures.find(lp => lp.lane === Lane.TOP);
+      const topPressure = hasLanePressureData ? lanePressures.find(lp => lp.lane === Lane.TOP) : undefined;
       if (topPressure?.pressure === 'pushing') opposingPressure = ', top avançada';
     }
 
-    const objStatus = dragonAlive ? 'Dragão vivo' : 'Dragão morto';
+    const objStatus = hasObjectiveData ? (dragonAlive ? 'Dragão vivo' : 'Dragão morto') : 'Objetivos sem telemetria';
     const hypothesis = `JG inimigo visto na jungle ${side} por ward. ${objStatus}${opposingPressure}. JG PODE estar por perto.`;
 
     return {
@@ -190,6 +207,7 @@ export class GankPredictor {
 
   private generatePositionBasedHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
     const { junglerState, lanePressures } = factors;
+    const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
 
     const region = junglerState!.region;
     let targetLane = '';
@@ -198,8 +216,12 @@ export class GankPredictor {
     else if (region.includes('BOT')) targetLane = 'bot';
     else targetLane = 'mid';
 
-    const lanePressure = lanePressures.find(lp => lp.lane.toLowerCase() === targetLane);
-    const pressureText = lanePressure?.pressure === 'pushing' ? 'avançada' : 'neutra';
+    const lanePressure = hasLanePressureData
+      ? lanePressures.find(lp => lp.lane.toLowerCase() === targetLane)
+      : undefined;
+    const pressureText = lanePressure?.pressure === 'pushing'
+      ? 'avançada'
+      : hasLanePressureData ? 'neutra' : 'pressão desconhecida';
 
     return {
       risk: 'high',
@@ -209,5 +231,9 @@ export class GankPredictor {
 
   private distance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
     return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
+  }
+
+  private hasUsableTelemetry(telemetry?: { status: string }): boolean {
+    return telemetry?.status === 'available' || telemetry?.status === 'simulated';
   }
 }

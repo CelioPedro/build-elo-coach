@@ -29,6 +29,9 @@ export interface GameDataProvider {
   getWards(): Promise<Ward[]>;
   getObjectives(): Promise<Objective[]>;
   getLanePressures(): Promise<LanePressure[]>;
+  getWardTelemetry(): Promise<Telemetry<Ward[]>>;
+  getObjectiveTelemetry(): Promise<Telemetry<Objective[]>>;
+  getLanePressureTelemetry(): Promise<Telemetry<LanePressure[]>>;
 
   startSimulation?(): void;
   stopSimulation?(): void;

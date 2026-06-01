@@ -1,6 +1,6 @@
 
 import { Player } from '../contracts/gameData';
-import { GameDataProvider, GameState } from '../contracts/provider';
+import { GameDataProvider, GameState, Telemetry } from '../contracts/provider';
 import { LanePressure, Objective, Ward } from '../contracts/junglerData';
 import * as https from 'https';
 
@@ -118,18 +118,32 @@ export class RiotProvider implements GameDataProvider {
   }
 
   async getWards(): Promise<Ward[]> {
-    // Real API doesn't provide ward data
-    return [];
+    const telemetry = await this.getWardTelemetry();
+    return telemetry.value || [];
   }
 
   async getObjectives(): Promise<Objective[]> {
-    // Real API doesn't provide objective data
-    return [];
+    const telemetry = await this.getObjectiveTelemetry();
+    return telemetry.value || [];
   }
 
   async getLanePressures(): Promise<LanePressure[]> {
+    const telemetry = await this.getLanePressureTelemetry();
+    return telemetry.value || [];
+  }
+
+  async getWardTelemetry(): Promise<Telemetry<Ward[]>> {
+    // Real API doesn't provide ward data
+    return this.unavailableTelemetry('live-api', 'Live Client API does not expose ward positions.');
+  }
+
+  async getObjectiveTelemetry(): Promise<Telemetry<Objective[]>> {
+    return this.unavailableTelemetry('event-api', 'Objective state is not derived yet; use game events in a later step.');
+  }
+
+  async getLanePressureTelemetry(): Promise<Telemetry<LanePressure[]>> {
     // Real API doesn't provide lane pressure data
-    return [];
+    return this.unavailableTelemetry('inferred', 'Lane pressure is not available from the live API yet.');
   }
 
   private hasSmite(spell?: Player['summonerSpells']['summonerSpellOne']): boolean {
@@ -140,5 +154,15 @@ export class RiotProvider implements GameDataProvider {
     ].filter(Boolean).join(' ').toLowerCase();
 
     return spell?.id === 11 || spellName.includes('smite');
+  }
+
+  private unavailableTelemetry<T>(source: Telemetry<T>['source'], message: string): Telemetry<T> {
+    return {
+      status: 'unavailable',
+      source,
+      value: null,
+      capturedAt: Date.now(),
+      message
+    };
   }
 }

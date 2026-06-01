@@ -7,8 +7,8 @@ import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
-import { GameFactors } from './contracts/junglerData';
-import { GameDataProvider } from './contracts/provider';
+import { GameFactors, LanePressure, Objective, Ward } from './contracts/junglerData';
+import { GameDataProvider, Telemetry } from './contracts/provider';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -222,9 +222,12 @@ async function updateGameData(): Promise<void> {
     let gankHypothesis = 'Aguardando partida...';
     let junglerName = 'Desconhecido';
     let players: any[] = [];
-    let wards: any[] = [];
-    let objectives: any[] = [];
-    let lanePressures: any[] = [];
+    let wards: Ward[] = [];
+    let objectives: Objective[] = [];
+    let lanePressures: LanePressure[] = [];
+    let wardTelemetry: Telemetry<Ward[]> | null = null;
+    let objectiveTelemetry: Telemetry<Objective[]> | null = null;
+    let lanePressureTelemetry: Telemetry<LanePressure[]> | null = null;
     let error: string | null = null;
     let errorType: string | null = null;
 
@@ -262,9 +265,12 @@ async function updateGameData(): Promise<void> {
         const junglerState = junglerTracker.getJunglerState();
         junglerName = junglerState?.championName || 'Desconhecido';
 
-        wards = await provider.getWards();
-        objectives = await provider.getObjectives();
-        lanePressures = await provider.getLanePressures();
+        wardTelemetry = await provider.getWardTelemetry();
+        objectiveTelemetry = await provider.getObjectiveTelemetry();
+        lanePressureTelemetry = await provider.getLanePressureTelemetry();
+        wards = wardTelemetry.value || [];
+        objectives = objectiveTelemetry.value || [];
+        lanePressures = lanePressureTelemetry.value || [];
 
         // Calculate strategies if we have time
         const safeGameTime = gameTime || 0;
@@ -274,7 +280,10 @@ async function updateGameData(): Promise<void> {
           wards,
           objectives,
           lanePressures,
-          gameTime: safeGameTime
+          gameTime: safeGameTime,
+          wardTelemetry,
+          objectiveTelemetry,
+          lanePressureTelemetry
         };
 
         const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
@@ -307,6 +316,11 @@ async function updateGameData(): Promise<void> {
         wards,
         objectives,
         lanePressures,
+        telemetry: {
+          wards: wardTelemetry,
+          objectives: objectiveTelemetry,
+          lanePressures: lanePressureTelemetry
+        },
         error,
         errorType
       };

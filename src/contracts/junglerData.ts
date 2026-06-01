@@ -1,3 +1,5 @@
+import type { Telemetry } from './provider';
+
 export interface Position {
   x: number;
   y: number;
@@ -95,4 +97,7 @@ export interface GameFactors {
   objectives: Objective[];
   lanePressures: LanePressure[];
   gameTime: number;
+  wardTelemetry?: Telemetry<Ward[]>;
+  objectiveTelemetry?: Telemetry<Objective[]>;
+  lanePressureTelemetry?: Telemetry<LanePressure[]>;
 }
