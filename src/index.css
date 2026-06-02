@@ -1,8 +1,197 @@
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow: hidden;
+  background: transparent;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.coach-hud {
+  --risk-color: #44ff88;
+  background: rgba(1, 10, 19, 0.74);
+  border: 1px solid rgba(200, 170, 110, 0.72);
+  border-left: 4px solid var(--risk-color);
+  border-radius: 6px;
+  color: #f0e6d2;
+  padding: 10px 12px 12px;
+  width: 236px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.coach-hud[data-mode='idle'] {
+  opacity: 0.72;
+  width: 190px;
+}
+
+.coach-hud[data-mode='loading'] {
+  --risk-color: #c8aa6e;
+}
+
+.coach-hud[data-mode='alert'] {
+  --risk-color: #ff4d4d;
+}
+
+.coach-hud[data-mode='error'] {
+  --risk-color: #ffaa00;
+}
+
+.drag-handle {
+  cursor: grab;
+  font-size: 9px;
+  color: #c8aa6e;
+  text-align: center;
+  user-select: none;
+  border-bottom: 1px solid rgba(200, 170, 110, 0.28);
+  margin: -10px -12px 8px;
+  padding: 6px;
+  border-radius: 5px 5px 0 0;
+  background: rgba(200, 170, 110, 0.08);
+}
+
+.drag-handle:hover {
+  background: rgba(200, 170, 110, 0.15);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.hud-grid {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.section {
+  margin: 0;
+  text-align: left;
+}
+
+.label {
+  font-size: 9px;
+  color: #a09b8c;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.timer {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  color: #00ffcc;
+  font-family: 'Courier New', monospace;
+  transition: color 0.3s;
+}
+
+.alert {
+  font-size: 14px;
+  line-height: 1.1;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--risk-color);
+  transition: color 0.3s;
+}
+
+.alert::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--risk-color);
+  box-shadow: 0 0 8px var(--risk-color);
+}
+
+.alert.seguro {
+  --risk-color: #44ff88;
+}
+
+.alert.atencao {
+  --risk-color: #ffaa00;
+}
+
+.alert.perigo {
+  --risk-color: #ff4d4d;
+}
+
+.status {
+  font-size: 10px;
+  line-height: 1.35;
+  color: #a09b8c;
+  margin-top: 8px;
+}
+
+.status:empty {
+  display: none;
+}
+
+.jungler {
+  font-size: 10px;
+  color: #c8aa6e;
+  margin-top: 7px;
+}
+
+.enemy-team {
+  margin-top: 9px;
+}
+
+.enemy-champions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.enemy-champion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.62;
+}
+
+.enemy-champion:not(.dead) {
+  opacity: 1;
+}
+
+.enemy-champion.dead img {
+  filter: grayscale(100%);
+  opacity: 0.32;
+}
+
+.champion-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid rgba(200, 170, 110, 0.45);
+}
+
+.champion-vision {
+  font-size: 7px;
+  color: #00ffcc;
+  margin-top: 2px;
+  text-align: center;
+}
+
+.is-hidden {
+  display: none;
+}
+
+[data-widget-id].dragging {
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(200, 170, 110, 0.3);
 }
