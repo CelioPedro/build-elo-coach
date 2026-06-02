@@ -35,13 +35,13 @@ export class MatchSimulator {
 
   private initializePlayers(): void {
     // Blue Team (ORDER)
-    const blueTeam = [
+    const blueTeam: Player[] = [
       {
         championName: 'Darius',
         role: 'TOP',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.TOP_LANE],
         rawChampionName: 'darius',
@@ -59,7 +59,7 @@ export class MatchSimulator {
         role: 'JUNGLE',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.BOT_JUNGLE],
         rawChampionName: 'leesin',
@@ -77,7 +77,7 @@ export class MatchSimulator {
         role: 'MID',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.MID_LANE],
         rawChampionName: 'ahri',
@@ -95,7 +95,7 @@ export class MatchSimulator {
         role: 'ADC',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.BOT_LANE],
         rawChampionName: 'jinx',
@@ -113,7 +113,7 @@ export class MatchSimulator {
         role: 'SUPPORT',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 6,
         position: this.regionPositions[MapRegion.BOT_LANE],
         rawChampionName: 'leona',
@@ -129,13 +129,13 @@ export class MatchSimulator {
     ];
 
     // Red Team (CHAOS)
-    const redTeam = [
+    const redTeam: Player[] = [
       {
         championName: 'Fiora',
         role: 'TOP',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.TOP_LANE],
         rawChampionName: 'fiora',
@@ -153,7 +153,7 @@ export class MatchSimulator {
         role: 'JUNGLE',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 6,
         position: this.regionPositions[MapRegion.TOP_JUNGLE],
         rawChampionName: 'elise',
@@ -171,7 +171,7 @@ export class MatchSimulator {
         role: 'MID',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.MID_LANE],
         rawChampionName: 'zed',
@@ -189,7 +189,7 @@ export class MatchSimulator {
         role: 'ADC',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 7,
         position: this.regionPositions[MapRegion.BOT_LANE],
         rawChampionName: 'caitlyn',
@@ -207,7 +207,7 @@ export class MatchSimulator {
         role: 'SUPPORT',
         isBot: false,
         isDead: false,
-        items: [] as any[],
+        items: [],
         level: 6,
         position: this.regionPositions[MapRegion.BOT_LANE],
         rawChampionName: 'thresh',

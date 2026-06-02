@@ -3,6 +3,16 @@ import { Player } from '../../contracts/gameData';
 import { LanePressure, Objective, Ward } from '../../contracts/junglerData';
 import { Telemetry } from '../../contracts/provider';
 
+interface ProviderMetrics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageLatency: number;
+  lastRequestTime: number;
+  circuitBreakerStatus: 'closed' | 'open' | 'half_open';
+  isGamePaused: boolean;
+}
+
 export class MockRiotProvider {
   private mockGameState: GameState = GameState.NotActive;
   private mockGameTime: number | null = null;
@@ -90,7 +100,7 @@ export class MockRiotProvider {
     return false;
   }
 
-  getMetrics(): any {
+  getMetrics(): ProviderMetrics {
     return {
       totalRequests: 10,
       successfulRequests: 8,

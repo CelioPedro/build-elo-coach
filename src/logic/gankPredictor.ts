@@ -1,4 +1,4 @@
-import { JunglerState, GankAlert, Lane, GameFactors, WardType, ObjectiveType } from '../contracts/junglerData';
+import { JunglerState, GankAlert, Lane, GameFactors, ObjectiveType } from '../contracts/junglerData';
 
 export class GankPredictor {
   private gankHistory: Array<{ timestamp: number; lane: string; success: boolean }> = [];
@@ -97,7 +97,7 @@ export class GankPredictor {
    * Gera hipótese detalhada baseada em fatores do jogo
    */
   generateHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
-    const { junglerState, wards, objectives, lanePressures, gameTime } = factors;
+    const { junglerState, wards, gameTime } = factors;
     const hasWardData = this.hasUsableTelemetry(factors.wardTelemetry);
 
     // Cenário base: sem jungler visível
@@ -114,7 +114,7 @@ export class GankPredictor {
       : [];
 
     if (nearbyWards.length > 0) {
-      return this.generateWardSightedHypothesis(factors, nearbyWards);
+      return this.generateWardSightedHypothesis(factors);
     }
 
     // Cenário: JG em posição conhecida
@@ -135,8 +135,14 @@ export class GankPredictor {
 
     if (recentObjectives.length > 0) {
       const obj = recentObjectives[0];
-      const timeSinceKill = gameTime - obj.killedAt!;
-      const respawnIn = obj.respawnAt! - gameTime;
+      if (typeof obj.killedAt !== 'number') {
+        return {
+          risk: 'low',
+          hypothesis: 'Objetivo recente sem tempo confiavel.'
+        };
+      }
+
+      const timeSinceKill = gameTime - obj.killedAt;
 
       if (timeSinceKill < 30) {
         return {
@@ -171,13 +177,20 @@ export class GankPredictor {
     };
   }
 
-  private generateWardSightedHypothesis(factors: GameFactors, nearbyWards: any[]): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
+  private generateWardSightedHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } {
     const { junglerState, objectives, lanePressures } = factors;
     const hasObjectiveData = this.hasUsableTelemetry(factors.objectiveTelemetry);
     const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
 
     // Verificar região do JG
-    const region = junglerState!.region;
+    if (!junglerState) {
+      return {
+        risk: 'low',
+        hypothesis: 'JG sem posicao confiavel no momento.'
+      };
+    }
+
+    const region = junglerState.region;
     let side = '';
     if (region.includes('TOP')) side = 'TOP SIDE';
     else if (region.includes('BOT')) side = 'BOT SIDE';
@@ -209,7 +222,14 @@ export class GankPredictor {
     const { junglerState, lanePressures } = factors;
     const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
 
-    const region = junglerState!.region;
+    if (!junglerState) {
+      return {
+        risk: 'low',
+        hypothesis: 'JG sem posicao confiavel no momento.'
+      };
+    }
+
+    const region = junglerState.region;
     let targetLane = '';
 
     if (region.includes('TOP')) targetLane = 'top';

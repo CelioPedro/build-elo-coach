@@ -26,6 +26,8 @@ export interface Runes {
   secondaryRuneTree?: Rune;
 }
 
+export type PlayerRole = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
+
 export interface SummonerSpell {
   id?: number;
   name?: string;
@@ -49,6 +51,7 @@ export interface PlayerScores {
 
 export interface Player {
   championName: string;
+  role?: PlayerRole;
   isBot: boolean;
   isDead: boolean;
   items: Item[];

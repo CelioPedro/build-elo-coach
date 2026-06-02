@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
+import { IncomingMessage } from 'http';
 import { RiotProvider } from './providers/riotProvider';
 import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
@@ -10,6 +11,8 @@ import { TacticalEngine } from './logic/tacticalEngine';
 import { GameSessionTracker, ProviderMode } from './logic/gameSessionTracker';
 import { GameFactors, LanePressure, Objective, Ward } from './contracts/junglerData';
 import { GameDataProvider, GameState, Telemetry } from './contracts/provider';
+import { ExternalFetchType, WidgetPosition } from './contracts/ipc';
+import { Player } from './contracts/gameData';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -17,14 +20,13 @@ declare global {
   const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 }
 
-let mainWindow: BrowserWindow;
+let mainWindow: BrowserWindow | null = null;
 let provider: GameDataProvider;
 let providerMode: ProviderMode = 'riot';
 let sessionTracker: GameSessionTracker;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
 let gameUpdateInterval: NodeJS.Timeout | null = null;
-let consecutiveErrors = 0;
 
 // Função para criar a janela principal
 function createMainWindow(): void {
@@ -67,9 +69,9 @@ function createMainWindow(): void {
   // Widget position persistence
   const positionsFile = path.join(app.getPath('userData'), 'widget-positions.json');
 
-  ipcMain.handle('save-widget-position', async (_event, id: string, pos: { x: number; y: number }) => {
+  ipcMain.handle('save-widget-position', async (_event, id: string, pos: WidgetPosition) => {
     try {
-      let positions: Record<string, { x: number; y: number }> = {};
+      let positions: Record<string, WidgetPosition> = {};
       if (fs.existsSync(positionsFile)) {
         positions = JSON.parse(fs.readFileSync(positionsFile, 'utf-8'));
       }
@@ -106,7 +108,7 @@ function createMainWindow(): void {
   });
 
   mainWindow.on('closed', () => {
-    mainWindow = null as any;
+    mainWindow = null;
   });
 }
 
@@ -130,14 +132,14 @@ app.on('ready', () => {
   // Test Connectivity from Main Process
   const ddragonUrl = 'https://ddragon.leagueoflegends.com/cdn/15.1.1/data/en_US/champion.json';
   console.log(`[MAIN] Testing connectivity to ${ddragonUrl}...`);
-  https.get(ddragonUrl, (res: any) => {
+  https.get(ddragonUrl, (res: IncomingMessage) => {
     console.log(`[MAIN] Connectivity Test: Status ${res.statusCode}`);
     if (res.statusCode === 200) {
       console.log('[MAIN] SUCCESS: Main process can reach DDragon.');
     } else {
       console.log('[MAIN] FAIL: Main process returned non-200.');
     }
-  }).on('error', (e: any) => {
+  }).on('error', (e: Error) => {
     console.log(`[MAIN] FAIL: Connection error: ${e.message}`);
   });
 });
@@ -156,10 +158,10 @@ app.on('activate', () => {
 });
 
 // IPC handlers for simulation
-ipcMain.handle('fetch-external', async (event, url, type) => {
+ipcMain.handle('fetch-external', async (_event, url: string, type: ExternalFetchType) => {
   return new Promise((resolve, reject) => {
     const req = https.get(url, (res) => {
-      const chunks: any[] = [];
+      const chunks: Buffer[] = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => {
         const buffer = Buffer.concat(chunks);
@@ -226,7 +228,7 @@ async function updateGameData(): Promise<void> {
     let gankRisk: 'low' | 'medium' | 'high' = 'low';
     let gankHypothesis = 'Aguardando partida...';
     let junglerName = 'Desconhecido';
-    let players: any[] = [];
+    let players: Player[] = [];
     let wards: Ward[] = [];
     let objectives: Objective[] = [];
     let lanePressures: LanePressure[] = [];
@@ -304,12 +306,9 @@ async function updateGameData(): Promise<void> {
             : 'Aguardando game time confiável...';
         }
 
-        consecutiveErrors = 0;
       } catch (innerError) {
         console.error('Error processing game data:', innerError);
       }
-    } else {
-      consecutiveErrors = 0;
     }
 
     // Send payload to renderer
