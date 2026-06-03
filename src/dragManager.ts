@@ -10,12 +10,13 @@ interface DragEventLike {
 /**
  * Initializes drag functionality for all elements with [data-widget-id].
  * - Uses interact.js for smooth dragging via the .drag-handle child
- * - Toggles setIgnoreMouseEvents on mouseenter/mouseleave
+ * - Enables dragging only when overlay edit mode is active
  * - Persists positions to main process via IPC on drag end
  * - Restores saved positions on initialization
  */
 export async function initDragManager(): Promise<void> {
     const api = window.electronAPI;
+    let editModeEnabled = false;
 
     // Load saved positions
     let savedPositions: Record<string, WidgetPosition> = {};
@@ -39,19 +40,11 @@ export async function initDragManager(): Promise<void> {
             widget.setAttribute('data-y', String(saved.y));
         }
 
-        // Mouse enter/leave for click-through toggle
-        widget.addEventListener('mouseenter', () => {
-            api.setIgnoreMouseEvents(false);
-        });
-
-        widget.addEventListener('mouseleave', () => {
-            api.setIgnoreMouseEvents(true, { forward: true });
-        });
-
         // Setup interact.js draggable
-        interact(widget).draggable({
+        const interactable = interact(widget).draggable({
             // Only allow dragging from the handle
             allowFrom: '.drag-handle',
+            enabled: editModeEnabled,
 
             inertia: true,
 
@@ -91,7 +84,31 @@ export async function initDragManager(): Promise<void> {
                 },
             },
         });
+
+        const applyWidgetEditMode = (enabled: boolean) => {
+            widget.setAttribute('data-edit-mode', String(enabled));
+            interactable.draggable({ enabled });
+        };
+
+        applyWidgetEditMode(editModeEnabled);
     });
+
+    const applyEditMode = (enabled: boolean) => {
+        editModeEnabled = enabled;
+        document.body.classList.toggle('is-editing', enabled);
+        widgets.forEach((widget) => {
+            widget.setAttribute('data-edit-mode', String(enabled));
+            interact(widget).draggable({ enabled });
+        });
+    };
+
+    try {
+        applyEditMode(await api.getEditMode());
+    } catch (err) {
+        console.warn('[DragManager] Could not load edit mode state:', err);
+    }
+
+    api.onEditModeChanged(applyEditMode);
 
     console.log(`[DragManager] Initialized ${widgets.length} draggable widget(s)`);
 }

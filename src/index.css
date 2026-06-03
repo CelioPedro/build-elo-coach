@@ -29,6 +29,12 @@ body {
   touch-action: none;
 }
 
+.coach-hud[data-edit-mode='true'] {
+  background: rgba(1, 10, 19, 0.9);
+  outline: 1px dashed rgba(0, 255, 204, 0.9);
+  box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.12), 0 8px 26px rgba(0, 0, 0, 0.55);
+}
+
 .coach-hud[data-mode='idle'] {
   opacity: 0.72;
   width: 190px;
@@ -47,7 +53,7 @@ body {
 }
 
 .drag-handle {
-  cursor: grab;
+  cursor: default;
   font-size: 9px;
   color: #c8aa6e;
   text-align: center;
@@ -59,8 +65,23 @@ body {
   background: rgba(200, 170, 110, 0.08);
 }
 
+.coach-hud[data-edit-mode='true'] .drag-handle {
+  cursor: grab;
+  background: rgba(0, 255, 204, 0.1);
+  color: #00ffcc;
+}
+
+.coach-hud[data-edit-mode='true'] .drag-handle::after {
+  content: ' | Ctrl+Shift+E';
+  color: #a09b8c;
+}
+
 .drag-handle:hover {
   background: rgba(200, 170, 110, 0.15);
+}
+
+.coach-hud[data-edit-mode='true'] .drag-handle:hover {
+  background: rgba(0, 255, 204, 0.18);
 }
 
 .drag-handle:active {

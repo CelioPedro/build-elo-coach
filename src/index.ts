@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -27,6 +27,19 @@ let sessionTracker: GameSessionTracker;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
 let gameUpdateInterval: NodeJS.Timeout | null = null;
+let editModeEnabled = false;
+
+function applyEditMode(enabled: boolean): boolean {
+  editModeEnabled = enabled;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setIgnoreMouseEvents(!editModeEnabled, editModeEnabled ? undefined : { forward: true });
+    mainWindow.webContents.send('edit-mode-changed', editModeEnabled);
+  }
+
+  console.log(`[MAIN] Overlay edit mode: ${editModeEnabled ? 'enabled' : 'disabled'}`);
+  return editModeEnabled;
+}
 
 // Função para criar a janela principal
 function createMainWindow(): void {
@@ -52,7 +65,7 @@ function createMainWindow(): void {
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   // Click-through: Ignore mouse events by default (let them pass to game)
-  // forward: true is needed to allow hover events to still reach the window (for mouseenter/leave)
+  // forward: true lets renderer receive lightweight pointer feedback without capturing clicks.
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // IPC handlers for mouse events
@@ -60,6 +73,9 @@ function createMainWindow(): void {
     const win = BrowserWindow.fromWebContents(event.sender);
     win?.setIgnoreMouseEvents(ignore, options);
   });
+
+  ipcMain.handle('set-edit-mode', (_event, enabled: boolean) => applyEditMode(enabled));
+  ipcMain.handle('get-edit-mode', () => editModeEnabled);
 
   // Log from renderer
   ipcMain.on('renderer-log', (event, message) => {
@@ -96,6 +112,7 @@ function createMainWindow(): void {
 
   // Enviar dados iniciais para testar
   mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow?.webContents.send('edit-mode-changed', editModeEnabled);
     mainWindow?.webContents.send('game-update', {
       gameState: 'not_active',
       gameTime: null,
@@ -124,6 +141,10 @@ app.on('ready', () => {
   gankPredictor = new GankPredictor();
 
   createMainWindow();
+
+  globalShortcut.register('CommandOrControl+Shift+E', () => {
+    applyEditMode(!editModeEnabled);
+  });
 
   // Iniciar monitoramento do jogo
   // Iniciar monitoramento do jogo
@@ -155,6 +176,10 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createMainWindow();
   }
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 // IPC handlers for simulation

@@ -37,8 +37,12 @@ export interface GameUpdatePayload {
 export interface ElectronAPI {
   onGameUpdate(callback: (data: GameUpdatePayload) => void): void;
   removeGameUpdate(callback: (data: GameUpdatePayload) => void): void;
+  onEditModeChanged(callback: (enabled: boolean) => void): void;
+  removeEditModeChanged(callback: (enabled: boolean) => void): void;
   startSimulation(): Promise<void>;
   stopSimulation(): Promise<void>;
+  setEditMode(enabled: boolean): Promise<boolean>;
+  getEditMode(): Promise<boolean>;
   setIgnoreMouseEvents(ignore: boolean, options?: { forward?: boolean }): void;
   log(message: string): void;
   fetchExternal<T = unknown>(url: string, type: ExternalFetchType): Promise<T>;
