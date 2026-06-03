@@ -1,10 +1,11 @@
-import { GameFactors, Lane, MapRegion } from '../contracts/junglerData';
+import { GameFactors, Lane, MapRegion, ObjectiveType } from '../contracts/junglerData';
 import { CompetitiveSignal, SignalConfidence, SignalEvidence, SignalSeverity } from '../contracts/signals';
 
 export class CompetitiveSignalEngine {
   generateSignals(factors: GameFactors): CompetitiveSignal[] {
     return [
-      this.generateLeeSinLevelThreeSignal(factors)
+      this.generateLeeSinLevelThreeSignal(factors),
+      this.generateFirstDragonSetupSignal(factors)
     ]
       .filter((signal): signal is CompetitiveSignal => signal !== null)
       .sort((a, b) => b.score - a.score);
@@ -55,6 +56,56 @@ export class CompetitiveSignalEngine {
       reason: topAdvanced
         ? '12 CS + top avancada'
         : '12 CS + top side visto',
+      evidence,
+      score
+    };
+  }
+
+  private generateFirstDragonSetupSignal(factors: GameFactors): CompetitiveSignal | null {
+    const { junglerState, objectives, lanePressures, gameTime } = factors;
+    const dragon = objectives.find(objective => objective.type === ObjectiveType.DRAGON);
+
+    if (!dragon || gameTime < 270 || gameTime > 330 || dragon.killedAt) {
+      return null;
+    }
+
+    const dragonSpawnSoon = !dragon.alive && dragon.respawnAt !== undefined && dragon.respawnAt <= 300;
+    const dragonLive = dragon.alive && gameTime >= 300;
+    const botSideJungler = junglerState?.region === MapRegion.BOT_JUNGLE ||
+      junglerState?.region === MapRegion.RIVER ||
+      junglerState?.region === MapRegion.MID_JUNGLE;
+    const botLaneState = lanePressures.find(lane => lane.lane === Lane.BOT);
+    const botUnderPressure = botLaneState?.pressure === 'receding';
+
+    if (!dragonSpawnSoon && !dragonLive) {
+      return null;
+    }
+
+    const evidence: SignalEvidence[] = [
+      { label: dragonLive ? 'dragao vivo' : 'dragao nasce em breve', weight: 25, source: 'simulated' },
+      { label: 'janela 5:00-5:30', weight: 15, source: 'inferred' }
+    ];
+
+    if (botSideJungler) {
+      evidence.push({ label: 'jungler no bot side', weight: 20, source: 'simulated', freshnessSeconds: 0 });
+    }
+
+    if (botUnderPressure) {
+      evidence.push({ label: 'bot sem prioridade', weight: 15, source: 'simulated' });
+    }
+
+    const score = evidence.reduce((total, item) => total + item.weight, 0);
+
+    return {
+      id: 'first-dragon-setup',
+      kind: 'objective',
+      severity: this.severityFromScore(score),
+      confidence: this.confidenceFromScore(score),
+      timeWindow: { from: 270, to: 330 },
+      label: dragonLive ? 'Dragao vivo -> bot side' : 'Dragao em 5:00',
+      reason: botSideJungler
+        ? 'Lee resetou para baixo'
+        : 'prepare wave/visao',
       evidence,
       score
     };

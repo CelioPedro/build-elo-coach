@@ -1,4 +1,4 @@
-import { Lane, MapRegion } from '../../contracts/junglerData';
+import { Lane, MapRegion, ObjectiveType } from '../../contracts/junglerData';
 import { CompetitiveSignalEngine } from '../competitiveSignalEngine';
 
 describe('CompetitiveSignalEngine', () => {
@@ -70,5 +70,42 @@ describe('CompetitiveSignalEngine', () => {
     });
 
     expect(signals).toEqual([]);
+  });
+
+  test('generates first dragon setup when Lee resets to bot side', () => {
+    const engine = new CompetitiveSignalEngine();
+
+    const signals = engine.generateSignals({
+      gameTime: 300,
+      junglerState: {
+        championName: 'LeeSin',
+        position: { x: 9600, y: 4700 },
+        region: MapRegion.BOT_JUNGLE,
+        lastSeen: 300,
+        isVisible: true,
+        level: 4,
+        creepScore: 20,
+        pathingProfile: {
+          championName: 'LeeSin',
+          preferredPath: [MapRegion.BOT_JUNGLE, MapRegion.TOP_JUNGLE],
+          gankFrequency: 0.8,
+          aggressionLevel: 9,
+          commonTargets: [Lane.TOP, Lane.MID],
+          averageGankDuration: 25
+        }
+      },
+      wards: [],
+      objectives: [{ type: ObjectiveType.DRAGON, alive: true, position: { x: 9800, y: 4400 } }],
+      lanePressures: [{ lane: Lane.BOT, pressure: 'receding' }]
+    });
+
+    expect(signals[0]).toMatchObject({
+      id: 'first-dragon-setup',
+      kind: 'objective',
+      severity: 'danger',
+      confidence: 'medium',
+      label: 'Dragao vivo -> bot side',
+      reason: 'Lee resetou para baixo'
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { Lane, MapRegion } from '../../contracts/junglerData';
+import { Lane, MapRegion, ObjectiveType } from '../../contracts/junglerData';
 import { JunglerTracker } from '../junglerTracker';
 import { MatchSimulator } from '../matchSimulator';
 
@@ -57,5 +57,33 @@ describe('MatchSimulator', () => {
     second.stop();
 
     expect(secondSnapshot).toEqual(firstSnapshot);
+  });
+
+  test('scripts first dragon setup and objective resolution', () => {
+    const simulator = new MatchSimulator();
+
+    simulator.start();
+    jest.advanceTimersByTime(300_000);
+
+    const leeSinAtDragon = simulator.getPlayers().find(player => player.championName === 'LeeSin');
+    const dragonSpawned = simulator.getObjectives().find(objective => objective.type === ObjectiveType.DRAGON);
+    const botPressure = simulator.getLanePressures().find(lane => lane.lane === Lane.BOT);
+
+    expect(simulator.getGameTime()).toBe(300);
+    expect(leeSinAtDragon?.level).toBe(4);
+    expect(leeSinAtDragon?.scores.creepScore).toBe(20);
+    expect(JunglerTracker.getRegionFromCoords(leeSinAtDragon?.position.x ?? 0, leeSinAtDragon?.position.y ?? 0)).toBe(MapRegion.RIVER);
+    expect(dragonSpawned?.alive).toBe(true);
+    expect(botPressure?.pressure).toBe('receding');
+
+    jest.advanceTimersByTime(42_000);
+    const dragonTaken = simulator.getObjectives().find(objective => objective.type === ObjectiveType.DRAGON);
+
+    expect(simulator.getGameTime()).toBe(342);
+    expect(dragonTaken?.alive).toBe(false);
+    expect(dragonTaken?.killedAt).toBe(342);
+    expect(dragonTaken?.respawnAt).toBe(642);
+
+    simulator.stop();
   });
 });

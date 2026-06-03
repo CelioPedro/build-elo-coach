@@ -215,8 +215,29 @@ export class MatchSimulator {
       return;
     }
 
-    this.setPlayerState(leeSin, POSITIONS[MapRegion.RIVER], 3, 12);
     leeSin.scores.kills = 1;
+
+    if (this.gameTime < 245) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.RIVER], 3, 12);
+      return;
+    }
+
+    if (this.gameTime < 270) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.BASE], 4, 16);
+      return;
+    }
+
+    if (this.gameTime < 300) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.BOT_JUNGLE], 4, 20);
+      return;
+    }
+
+    if (this.gameTime < 342) {
+      this.setPlayerState(leeSin, { x: 9600, y: 4700 }, 4, 20);
+      return;
+    }
+
+    this.setPlayerState(leeSin, POSITIONS[MapRegion.BOT_JUNGLE], 4, 24);
   }
 
   private updateLanePressures(): void {
@@ -227,7 +248,7 @@ export class MatchSimulator {
     this.lanePressures = [
       { lane: Lane.TOP, pressure: topPressure, towerHealth: 100, inhibitorAlive: true },
       { lane: Lane.MID, pressure: this.gameTime >= 135 && this.gameTime < 190 ? 'pushing' : 'neutral', towerHealth: 100, inhibitorAlive: true },
-      { lane: Lane.BOT, pressure: this.gameTime >= 150 && this.gameTime < 210 ? 'receding' : 'neutral', towerHealth: 100, inhibitorAlive: true }
+      { lane: Lane.BOT, pressure: this.gameTime >= 285 && this.gameTime < 345 ? 'receding' : 'neutral', towerHealth: 100, inhibitorAlive: true }
     ];
 
     const jax = this.findPlayer('Jax');
@@ -260,8 +281,9 @@ export class MatchSimulator {
     this.objectives = [
       {
         type: ObjectiveType.DRAGON,
-        alive: this.gameTime >= 300,
-        respawnAt: this.gameTime < 300 ? 300 : undefined,
+        alive: this.gameTime >= 300 && this.gameTime < 342,
+        killedAt: this.gameTime >= 342 ? 342 : undefined,
+        respawnAt: this.gameTime < 300 ? 300 : this.gameTime >= 342 ? 642 : undefined,
         position: { x: 9800, y: 4400 }
       },
       {
