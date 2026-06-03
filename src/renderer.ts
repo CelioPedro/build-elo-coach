@@ -18,6 +18,11 @@ const gankSection = document.getElementById('gank-section') as HTMLElement;
 const coachHud = document.getElementById('coach-hud') as HTMLElement;
 const enemyTeam = document.getElementById('enemy-team') as HTMLElement;
 const enemyChampions = document.getElementById('enemy-champions') as HTMLElement;
+const threatChip = document.getElementById('threat-chip') as HTMLElement;
+const threatSeverity = document.getElementById('threat-severity') as HTMLElement;
+const threatWindow = document.getElementById('threat-window') as HTMLElement;
+const threatLabel = document.getElementById('threat-label') as HTMLElement;
+const threatReason = document.getElementById('threat-reason') as HTMLElement;
 
 let isGameActive = false;
 let ddragonVersion = '15.1.1';
@@ -170,6 +175,7 @@ function updateUI(data: GameUpdatePayload): void {
     setHidden(enemyTeam, !viewModel.showEnemies);
 
     updateEnemyChampions(players, wards, gameTime);
+    updateThreatChip(data);
 
     waveTimer.textContent = waveTime;
     waveTimer.style.color = isSiege ? '#ff6b35' : '#00ffcc';
@@ -189,8 +195,32 @@ function updateUI(data: GameUpdatePayload): void {
   setHidden(gankSection, true);
   setHidden(junglerInfo, true);
   setHidden(enemyTeam, true);
+  setHidden(threatChip, true);
   gameStatus.textContent = viewModel.statusText;
   gankHypothesisEl.textContent = '';
+}
+
+function updateThreatChip(data: GameUpdatePayload): void {
+  const signal = data.signals?.[0];
+  if (!signal) {
+    setHidden(threatChip, true);
+    return;
+  }
+
+  threatChip.dataset.severity = signal.severity;
+  threatSeverity.textContent = signal.severity === 'danger'
+    ? 'PERIGO'
+    : signal.severity === 'watch' ? 'ATENCAO' : 'INFO';
+  threatWindow.textContent = `${formatClock(signal.timeWindow.from)}-${formatClock(signal.timeWindow.to)}`;
+  threatLabel.textContent = signal.label;
+  threatReason.textContent = signal.reason;
+  setHidden(threatChip, false);
+}
+
+function formatClock(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function setHidden(element: HTMLElement, hidden: boolean): void {

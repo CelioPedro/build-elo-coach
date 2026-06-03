@@ -8,11 +8,13 @@ import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
+import { CompetitiveSignalEngine } from './logic/competitiveSignalEngine';
 import { GameSessionState, GameSessionTracker, ProviderMode } from './logic/gameSessionTracker';
 import { GameFactors, LanePressure, Objective, Ward } from './contracts/junglerData';
 import { GameDataProvider, GameState, Telemetry } from './contracts/provider';
 import { ExternalFetchType, WidgetPosition } from './contracts/ipc';
 import { Player } from './contracts/gameData';
+import { CompetitiveSignal } from './contracts/signals';
 
 // Declarações globais injetadas pelo Webpack
 declare global {
@@ -26,6 +28,7 @@ let providerMode: ProviderMode = 'riot';
 let sessionTracker: GameSessionTracker;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
+let signalEngine: CompetitiveSignalEngine;
 let gameUpdateTimer: NodeJS.Timeout | null = null;
 let editModeEnabled = false;
 
@@ -149,6 +152,7 @@ app.on('ready', () => {
   sessionTracker = new GameSessionTracker(providerMode);
   junglerTracker = new JunglerTracker();
   gankPredictor = new GankPredictor();
+  signalEngine = new CompetitiveSignalEngine();
 
   createMainWindow();
 
@@ -254,6 +258,7 @@ async function updateGameData(): Promise<GameSessionState> {
     let wardTelemetry: Telemetry<Ward[]> | null = null;
     let objectiveTelemetry: Telemetry<Objective[]> | null = null;
     let lanePressureTelemetry: Telemetry<LanePressure[]> | null = null;
+    let signals: CompetitiveSignal[] = [];
     let error: string | null = null;
     let errorType: string | null = null;
 
@@ -305,6 +310,7 @@ async function updateGameData(): Promise<GameSessionState> {
         };
 
         if (effectiveGameTime !== null) {
+          signals = signalEngine.generateSignals(gameFactors);
           const hypothesisResult = gankPredictor.generateHypothesis(gameFactors);
           gankRisk = hypothesisResult.risk;
           gankHypothesis = hypothesisResult.hypothesis;
@@ -335,6 +341,7 @@ async function updateGameData(): Promise<GameSessionState> {
         isSiege,
         gankRisk,
         gankHypothesis,
+        signals,
         junglerName,
         players,
         wards,

@@ -1,5 +1,6 @@
 import { Player } from './gameData';
 import { LanePressure, Objective, Ward } from './junglerData';
+import { CompetitiveSignal } from './signals';
 import { GameSessionState } from '../logic/gameSessionTracker';
 import { GameState, Telemetry } from './provider';
 
@@ -20,6 +21,7 @@ export interface GameUpdatePayload {
   isSiege?: boolean;
   gankRisk?: 'low' | 'medium' | 'high';
   gankHypothesis?: string;
+  signals?: CompetitiveSignal[];
   junglerName?: string;
   players?: Player[];
   wards?: Ward[];

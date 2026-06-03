@@ -149,6 +149,57 @@ body {
   --risk-color: #ff4d4d;
 }
 
+.threat-chip {
+  margin-top: 9px;
+  padding: 7px 8px;
+  border: 1px solid rgba(200, 170, 110, 0.28);
+  border-left: 3px solid var(--risk-color);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.threat-chip[data-severity='danger'] {
+  --risk-color: #ff4d4d;
+}
+
+.threat-chip[data-severity='watch'] {
+  --risk-color: #ffaa00;
+}
+
+.threat-chip[data-severity='info'] {
+  --risk-color: #00ffcc;
+}
+
+.threat-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  font-size: 8px;
+  color: #a09b8c;
+  text-transform: uppercase;
+}
+
+.threat-severity {
+  color: var(--risk-color);
+  font-weight: 700;
+}
+
+.threat-label {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #f0e6d2;
+}
+
+.threat-reason {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.25;
+  color: #c8aa6e;
+}
+
 .status {
   font-size: 10px;
   line-height: 1.35;
