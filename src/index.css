@@ -260,6 +260,13 @@ body {
   font-size: 10px;
 }
 
+.objective-panel {
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 170, 0, 0.24);
+  border-radius: 5px;
+  background: rgba(255, 170, 0, 0.07);
+}
+
 .objective-row,
 .compact-row {
   display: flex;
@@ -279,6 +286,14 @@ body {
   color: #f0e6d2;
   text-align: right;
   font-family: 'Courier New', monospace;
+}
+
+.objective-time.danger {
+  color: #ff4d4d;
+}
+
+.objective-time.watch {
+  color: #ffaa00;
 }
 
 .compact-value.danger {

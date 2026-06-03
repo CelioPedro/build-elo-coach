@@ -1,7 +1,7 @@
 import { initDragManager } from './dragManager';
 import { Player } from './contracts/gameData';
 import { DataDragonChampionResponse, GameUpdatePayload } from './contracts/ipc';
-import { Lane, LanePressure, Objective, ObjectiveType, Position, Ward } from './contracts/junglerData';
+import { Lane, LanePressure, Position, Ward } from './contracts/junglerData';
 import { CompetitiveSignal } from './contracts/signals';
 import { createOverlayViewModel } from './logic/overlayViewModel';
 import './index.css';
@@ -165,7 +165,6 @@ function updateUI(data: GameUpdatePayload): void {
     isSiege = false,
     players = [],
     wards = [],
-    objectives = [],
     lanePressures = []
   } = data;
 
@@ -184,7 +183,7 @@ function updateUI(data: GameUpdatePayload): void {
 
     updateEnemyChampions(players, wards, gameTime);
     updateMatchClock(gameTime);
-    updateObjectivePanel(objectives, gameTime);
+    updateObjectivePanel(data.signals || []);
     updateVisionPanel(players, wards, gameTime);
     updateMatchupPanel(players, lanePressures, gameTime);
     updateThreatChip(data);
@@ -222,24 +221,19 @@ function updateMatchClock(gameTime: number | null): void {
   matchClock.textContent = gameTime === null ? '--:--' : formatClock(gameTime);
 }
 
-function updateObjectivePanel(objectives: Objective[], gameTime: number | null): void {
-  if (gameTime === null || objectives.length === 0) {
+function updateObjectivePanel(signals: CompetitiveSignal[]): void {
+  const objectiveSignal = signals.find(signal => signal.kind === 'objective');
+
+  if (!objectiveSignal) {
     setHidden(objectivePanel, true);
     return;
   }
 
-  const order = [ObjectiveType.DRAGON, ObjectiveType.HERALD, ObjectiveType.BARON];
-  const rows = order
-    .map(type => objectives.find(objective => objective.type === type))
-    .filter((objective): objective is Objective => objective !== undefined)
-    .map(objective => createInfoRow(
-      objectiveLabel(objective.type),
-      objectiveStatus(objective, gameTime),
-      'objective'
-    ));
-
-  objectivePanel.replaceChildren(...rows);
-  setHidden(objectivePanel, rows.length === 0);
+  objectivePanel.replaceChildren(
+    createInfoRow('Prep objetivo', objectiveSignal.label, 'objective', objectiveSignal.severity === 'danger' ? 'danger' : objectiveSignal.severity === 'watch' ? 'watch' : undefined),
+    createInfoRow(formatWindow(objectiveSignal), objectiveSignal.reason, 'objective')
+  );
+  setHidden(objectivePanel, false);
 }
 
 function updateVisionPanel(players: Player[], wards: Ward[], gameTime: number | null): void {
@@ -341,18 +335,8 @@ function createInfoRow(label: string, value: string, classPrefix: 'objective' | 
   return row;
 }
 
-function objectiveLabel(type: ObjectiveType): string {
-  if (type === ObjectiveType.DRAGON) return 'Dragao';
-  if (type === ObjectiveType.HERALD) return 'Herald';
-  return 'Baron';
-}
-
-function objectiveStatus(objective: Objective, gameTime: number): string {
-  if (objective.alive) return 'vivo';
-  if (objective.respawnAt !== undefined && objective.respawnAt > gameTime) {
-    return formatClock(objective.respawnAt - gameTime);
-  }
-  return 'morto';
+function formatWindow(signal: CompetitiveSignal): string {
+  return `${formatClock(signal.timeWindow.from)}-${formatClock(signal.timeWindow.to)}`;
 }
 
 function hasItem(player: Player, itemName: string): boolean {
