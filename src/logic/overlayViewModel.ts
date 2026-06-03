@@ -66,7 +66,7 @@ export function createOverlayViewModel(payload: GameUpdatePayload): OverlayViewM
   return {
     mode,
     statusText: getSessionStatus(payload),
-    riskLabel: riskClass === 'perigo' ? 'Alto' : riskClass === 'atencao' ? 'Medio' : 'Baixo',
+    riskLabel: riskClass === 'perigo' ? 'Alto' : riskClass === 'atencao' ? 'Medio' : 'Safe',
     riskClass,
     reason: compactReason(payload.gankHypothesis || ''),
     showWave: payload.gameTime !== null && payload.gameTime !== undefined,

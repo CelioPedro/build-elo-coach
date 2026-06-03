@@ -29,7 +29,7 @@ describe('createOverlayViewModel', () => {
     });
 
     expect(vm.mode).toBe('compact');
-    expect(vm.riskLabel).toBe('Baixo');
+    expect(vm.riskLabel).toBe('Safe');
     expect(vm.statusText).toBe('Demo offline');
     expect(vm.showWave).toBe(true);
   });
