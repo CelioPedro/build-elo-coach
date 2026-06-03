@@ -77,7 +77,10 @@ export class JunglerTracker {
       region,
       lastSeen: Date.now(),
       pathingProfile: profile,
-      isVisible: true
+      isVisible: true,
+      level: jungler.level,
+      creepScore: jungler.scores.creepScore,
+      team: jungler.team
     };
   }
 

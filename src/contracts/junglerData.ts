@@ -38,6 +38,9 @@ export interface JunglerState {
   lastSeen: number;
   pathingProfile: PathingProfile;
   isVisible: boolean;
+  level?: number;
+  creepScore?: number;
+  team?: 'ORDER' | 'CHAOS';
 }
 
 export interface GankAlert {

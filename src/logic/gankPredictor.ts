@@ -1,4 +1,4 @@
-import { JunglerState, GankAlert, Lane, GameFactors, ObjectiveType } from '../contracts/junglerData';
+import { JunglerState, GankAlert, Lane, GameFactors, MapRegion, ObjectiveType } from '../contracts/junglerData';
 
 export class GankPredictor {
   private gankHistory: Array<{ timestamp: number; lane: string; success: boolean }> = [];
@@ -103,6 +103,11 @@ export class GankPredictor {
     // Cenário base: sem jungler visível
     if (!junglerState || !junglerState.isVisible) {
       return this.generateInvisibleJunglerHypothesis(factors);
+    }
+
+    const earlyLeeSinHypothesis = this.generateEarlyLeeSinHypothesis(factors);
+    if (earlyLeeSinHypothesis) {
+      return earlyLeeSinHypothesis;
     }
 
     // Cenário: JG visto por ward
@@ -251,6 +256,39 @@ export class GankPredictor {
 
   private distance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
     return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
+  }
+
+  private generateEarlyLeeSinHypothesis(factors: GameFactors): { risk: 'low' | 'medium' | 'high'; hypothesis: string } | null {
+    const { junglerState, lanePressures, gameTime } = factors;
+    const hasLanePressureData = this.hasUsableTelemetry(factors.lanePressureTelemetry);
+
+    if (!junglerState) return null;
+
+    const isLevelThreeWindow = junglerState.championName.toLowerCase() === 'leesin' &&
+      gameTime >= 150 &&
+      gameTime <= 205 &&
+      (junglerState.level ?? 0) >= 3 &&
+      (junglerState.creepScore ?? 0) >= 12;
+
+    const isTopSide = junglerState.region === MapRegion.TOP_JUNGLE ||
+      junglerState.region === MapRegion.RIVER ||
+      junglerState.region === MapRegion.TOP_LANE;
+
+    if (!isLevelThreeWindow || !isTopSide) {
+      return null;
+    }
+
+    const topPressure = hasLanePressureData
+      ? lanePressures.find(lp => lp.lane === Lane.TOP)
+      : undefined;
+    const topText = topPressure?.pressure === 'pushing'
+      ? 'top avancada'
+      : hasLanePressureData ? 'top sem pressao clara' : 'pressao de top incerta';
+
+    return {
+      risk: 'high',
+      hypothesis: `Lee Sin lvl3 no top side. ${topText}; janela classica de gank/invade.`
+    };
   }
 
   private hasUsableTelemetry(telemetry?: { status: string }): boolean {
