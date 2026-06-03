@@ -124,6 +124,8 @@ O projeto ja possui:
 - Separar melhor o dominio por jogo para permitir expansao alem de LoL.
 - Documentar decisoes de arquitetura e limitacoes da Riot Live Client API.
 
+O plano de dominio para o MVP esta em [`docs/mvp-simulation-research.md`](docs/mvp-simulation-research.md).
+
 ## Aprendizados destacados
 
 - Electron exige cuidado com seguranca, preload e isolamento de contexto.
