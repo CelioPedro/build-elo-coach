@@ -1,4 +1,4 @@
-import { Player, PlayerRole, SummonerSpells } from '../contracts/gameData';
+import { Item, Player, PlayerRole, SummonerSpells } from '../contracts/gameData';
 import { Lane, LanePressure, MapRegion, Objective, ObjectiveType, Position, Ward, WardType } from '../contracts/junglerData';
 
 type Team = Player['team'];
@@ -184,6 +184,7 @@ export class MatchSimulator {
   private applyLeeSinLevelThreeScenario(): void {
     this.updateLeeSinPath();
     this.updateLanePressures();
+    this.updatePlayerPowerSpikes();
     this.updateWards();
     this.updateObjectives();
   }
@@ -365,6 +366,42 @@ export class MatchSimulator {
     }
   }
 
+  private updatePlayerPowerSpikes(): void {
+    const leeSin = this.findPlayer('LeeSin');
+    if (leeSin) {
+      leeSin.items = [
+        this.createItem('Mosstomper Seedling', 1103),
+        ...(this.gameTime >= 245 ? [this.createItem('Serrated Dirk', 3134)] : []),
+        ...(this.gameTime >= 690 ? [this.createItem('Black Cleaver', 3071)] : []),
+        ...(this.gameTime >= 1200 ? [this.createItem('Death\'s Dance', 6333)] : [])
+      ];
+    }
+
+    const renekton = this.findPlayer('Renekton');
+    if (renekton) {
+      renekton.items = [
+        ...(this.gameTime >= 360 ? [this.createItem('Eclipse', 6692)] : []),
+        ...(this.gameTime >= 900 ? [this.createItem('Black Cleaver', 3071)] : [])
+      ];
+    }
+
+    const jax = this.findPlayer('Jax');
+    if (jax) {
+      jax.items = [
+        ...(this.gameTime >= 780 ? [this.createItem('Trinity Force', 3078)] : []),
+        ...(this.gameTime >= 1260 ? [this.createItem('Blade of the Ruined King', 3153)] : [])
+      ];
+    }
+
+    const draven = this.findPlayer('Draven');
+    if (draven) {
+      draven.items = [
+        ...(this.gameTime >= 642 ? [this.createItem('The Collector', 6676)] : []),
+        ...(this.gameTime >= 1200 ? [this.createItem('Infinity Edge', 3031)] : [])
+      ];
+    }
+  }
+
   private updateObjectives(): void {
     this.objectives = [
       this.getDragonState(),
@@ -432,6 +469,20 @@ export class MatchSimulator {
       summonerName: champion.summonerName,
       summonerSpells: champion.summonerSpells,
       team: champion.team
+    };
+  }
+
+  private createItem(displayName: string, itemID: number): Item {
+    return {
+      canUse: false,
+      consumable: false,
+      count: 1,
+      displayName,
+      itemID,
+      price: 0,
+      rawDescription: '',
+      rawDisplayName: displayName,
+      slot: 0
     };
   }
 

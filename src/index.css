@@ -29,6 +29,42 @@ body {
   touch-action: none;
 }
 
+.drag-edge {
+  position: absolute;
+  cursor: move;
+  z-index: 2;
+}
+
+.drag-edge-top,
+.drag-edge-bottom {
+  left: -6px;
+  right: -6px;
+  height: 8px;
+}
+
+.drag-edge-top {
+  top: -6px;
+}
+
+.drag-edge-bottom {
+  bottom: -6px;
+}
+
+.drag-edge-left,
+.drag-edge-right {
+  top: -6px;
+  bottom: -6px;
+  width: 8px;
+}
+
+.drag-edge-left {
+  left: -6px;
+}
+
+.drag-edge-right {
+  right: -6px;
+}
+
 .coach-hud[data-edit-mode='true'] {
   background: rgba(1, 10, 19, 0.9);
   outline: 1px dashed rgba(0, 255, 204, 0.9);
@@ -72,7 +108,7 @@ body {
 }
 
 .coach-hud[data-edit-mode='true'] .drag-handle::after {
-  content: ' | Ctrl+Shift+E';
+  content: '';
   color: #a09b8c;
 }
 
@@ -93,6 +129,22 @@ body {
   grid-template-columns: 82px 1fr;
   gap: 8px;
   align-items: center;
+}
+
+.match-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+  font-size: 9px;
+  color: #a09b8c;
+  text-transform: uppercase;
+}
+
+.match-strip strong {
+  color: #f0e6d2;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
 }
 
 .section {
@@ -198,6 +250,43 @@ body {
   font-size: 10px;
   line-height: 1.25;
   color: #c8aa6e;
+}
+
+.objective-panel,
+.compact-panel {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.objective-row,
+.compact-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(200, 170, 110, 0.14);
+}
+
+.objective-name,
+.compact-name {
+  color: #a09b8c;
+}
+
+.objective-time,
+.compact-value {
+  color: #f0e6d2;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.compact-value.danger {
+  color: #ff4d4d;
+}
+
+.compact-value.watch {
+  color: #ffaa00;
 }
 
 .tempo-rail {

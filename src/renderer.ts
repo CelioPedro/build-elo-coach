@@ -1,7 +1,7 @@
 import { initDragManager } from './dragManager';
 import { Player } from './contracts/gameData';
 import { DataDragonChampionResponse, GameUpdatePayload } from './contracts/ipc';
-import { Position, Ward } from './contracts/junglerData';
+import { Lane, LanePressure, Objective, ObjectiveType, Position, Ward } from './contracts/junglerData';
 import { CompetitiveSignal } from './contracts/signals';
 import { createOverlayViewModel } from './logic/overlayViewModel';
 import './index.css';
@@ -25,6 +25,10 @@ const threatWindow = document.getElementById('threat-window') as HTMLElement;
 const threatLabel = document.getElementById('threat-label') as HTMLElement;
 const threatReason = document.getElementById('threat-reason') as HTMLElement;
 const tempoRail = document.getElementById('tempo-rail') as HTMLElement;
+const matchClock = document.getElementById('match-clock') as HTMLElement;
+const objectivePanel = document.getElementById('objective-panel') as HTMLElement;
+const visionPanel = document.getElementById('vision-panel') as HTMLElement;
+const matchupPanel = document.getElementById('matchup-panel') as HTMLElement;
 
 let isGameActive = false;
 let ddragonVersion = '15.1.1';
@@ -160,7 +164,9 @@ function updateUI(data: GameUpdatePayload): void {
     waveTime = '--:--',
     isSiege = false,
     players = [],
-    wards = []
+    wards = [],
+    objectives = [],
+    lanePressures = []
   } = data;
 
   coachHud.dataset.mode = viewModel.mode;
@@ -177,6 +183,10 @@ function updateUI(data: GameUpdatePayload): void {
     setHidden(enemyTeam, !viewModel.showEnemies);
 
     updateEnemyChampions(players, wards, gameTime);
+    updateMatchClock(gameTime);
+    updateObjectivePanel(objectives, gameTime);
+    updateVisionPanel(players, wards, gameTime);
+    updateMatchupPanel(players, lanePressures, gameTime);
     updateThreatChip(data);
     updateTempoRail(data.signals || []);
 
@@ -200,8 +210,101 @@ function updateUI(data: GameUpdatePayload): void {
   setHidden(enemyTeam, true);
   setHidden(threatChip, true);
   setHidden(tempoRail, true);
+  setHidden(objectivePanel, true);
+  setHidden(visionPanel, true);
+  setHidden(matchupPanel, true);
+  matchClock.textContent = '--:--';
   gameStatus.textContent = viewModel.statusText;
   gankHypothesisEl.textContent = '';
+}
+
+function updateMatchClock(gameTime: number | null): void {
+  matchClock.textContent = gameTime === null ? '--:--' : formatClock(gameTime);
+}
+
+function updateObjectivePanel(objectives: Objective[], gameTime: number | null): void {
+  if (gameTime === null || objectives.length === 0) {
+    setHidden(objectivePanel, true);
+    return;
+  }
+
+  const order = [ObjectiveType.DRAGON, ObjectiveType.HERALD, ObjectiveType.BARON];
+  const rows = order
+    .map(type => objectives.find(objective => objective.type === type))
+    .filter((objective): objective is Objective => objective !== undefined)
+    .map(objective => createInfoRow(
+      objectiveLabel(objective.type),
+      objectiveStatus(objective, gameTime),
+      'objective'
+    ));
+
+  objectivePanel.replaceChildren(...rows);
+  setHidden(objectivePanel, rows.length === 0);
+}
+
+function updateVisionPanel(players: Player[], wards: Ward[], gameTime: number | null): void {
+  if (gameTime === null || players.length === 0) {
+    setHidden(visionPanel, true);
+    return;
+  }
+
+  const alliedWards = wards.filter(ward => ward.team === 'ORDER');
+  const missingEnemies = players
+    .filter(player => player.team === 'CHAOS' && !player.isDead)
+    .filter(player => !alliedWards.some(ward => isNearWard(player.position, ward.position, 1200)))
+    .map(player => player.championName)
+    .slice(0, 3);
+  const visionValue = alliedWards.length > 0
+    ? `${alliedWards.length} ward${alliedWards.length > 1 ? 's' : ''}`
+    : 'sem wards';
+  const missingValue = missingEnemies.length > 0 ? missingEnemies.join(', ') : 'ninguem';
+
+  visionPanel.replaceChildren(
+    createInfoRow('Visao', visionValue, 'compact'),
+    createInfoRow('Sumidos', missingValue, 'compact', missingEnemies.length >= 3 ? 'danger' : missingEnemies.length > 0 ? 'watch' : undefined)
+  );
+  setHidden(visionPanel, false);
+}
+
+function updateMatchupPanel(players: Player[], lanePressures: LanePressure[], gameTime: number | null): void {
+  if (gameTime === null || players.length === 0) {
+    setHidden(matchupPanel, true);
+    return;
+  }
+
+  const jax = players.find(player => player.championName === 'Jax');
+  const renekton = players.find(player => player.championName === 'Renekton');
+  if (!jax || !renekton) {
+    setHidden(matchupPanel, true);
+    return;
+  }
+
+  const topPressure = lanePressures.find(lane => lane.lane === Lane.TOP)?.pressure;
+  const renektonHasEclipse = hasItem(renekton, 'Eclipse');
+  const jaxHasTrinity = hasItem(jax, 'Trinity Force');
+  const jaxHasBlade = hasItem(jax, 'Blade of the Ruined King');
+  const enemyItems = importantItems([renekton, players.find(player => player.championName === 'Draven'), players.find(player => player.championName === 'LeeSin')]);
+
+  let tradeText = 'troca neutra';
+  let severity: 'danger' | 'watch' | undefined;
+  if (renektonHasEclipse && !jaxHasTrinity) {
+    tradeText = 'Renekton spike';
+    severity = 'danger';
+  } else if (jaxHasTrinity && !jaxHasBlade) {
+    tradeText = 'Jax pode contestar';
+    severity = 'watch';
+  } else if (jaxHasTrinity && jaxHasBlade) {
+    tradeText = 'Jax escala melhor';
+  } else if (topPressure === 'pushing') {
+    tradeText = 'top exposta';
+    severity = 'watch';
+  }
+
+  matchupPanel.replaceChildren(
+    createInfoRow('Trade top', tradeText, 'compact', severity),
+    createInfoRow('Itens inimigos', enemyItems || 'sem spike', 'compact')
+  );
+  setHidden(matchupPanel, false);
 }
 
 function updateThreatChip(data: GameUpdatePayload): void {
@@ -219,6 +322,51 @@ function updateThreatChip(data: GameUpdatePayload): void {
   threatLabel.textContent = signal.label;
   threatReason.textContent = signal.reason;
   setHidden(threatChip, false);
+}
+
+function createInfoRow(label: string, value: string, classPrefix: 'objective' | 'compact', severity?: 'danger' | 'watch'): HTMLElement {
+  const row = document.createElement('div');
+  row.className = `${classPrefix}-row`;
+
+  const name = document.createElement('span');
+  name.className = `${classPrefix}-name`;
+  name.textContent = label;
+
+  const info = document.createElement('span');
+  info.className = classPrefix === 'objective' ? `${classPrefix}-time` : `${classPrefix}-value`;
+  if (severity) info.classList.add(severity);
+  info.textContent = value;
+
+  row.append(name, info);
+  return row;
+}
+
+function objectiveLabel(type: ObjectiveType): string {
+  if (type === ObjectiveType.DRAGON) return 'Dragao';
+  if (type === ObjectiveType.HERALD) return 'Herald';
+  return 'Baron';
+}
+
+function objectiveStatus(objective: Objective, gameTime: number): string {
+  if (objective.alive) return 'vivo';
+  if (objective.respawnAt !== undefined && objective.respawnAt > gameTime) {
+    return formatClock(objective.respawnAt - gameTime);
+  }
+  return 'morto';
+}
+
+function hasItem(player: Player, itemName: string): boolean {
+  return player.items.some(item => item.displayName === itemName);
+}
+
+function importantItems(players: Array<Player | undefined>): string {
+  return players
+    .filter((player): player is Player => player !== undefined)
+    .flatMap(player => player.items
+      .filter(item => ['Eclipse', 'Trinity Force', 'The Collector', 'Infinity Edge', 'Black Cleaver', 'Death\'s Dance'].includes(item.displayName))
+      .map(item => `${player.championName}: ${item.displayName}`))
+    .slice(0, 2)
+    .join(' | ');
 }
 
 function updateTempoRail(signals: CompetitiveSignal[]): void {

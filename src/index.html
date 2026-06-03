@@ -10,7 +10,15 @@
 
 <body>
   <div id="coach-hud" class="coach-hud" data-widget-id="coach-hud" data-mode="idle">
+    <div class="drag-edge drag-edge-top" title="Arrastar HUD"></div>
+    <div class="drag-edge drag-edge-right" title="Arrastar HUD"></div>
+    <div class="drag-edge drag-edge-bottom" title="Arrastar HUD"></div>
+    <div class="drag-edge drag-edge-left" title="Arrastar HUD"></div>
     <div class="drag-handle">EloCoach</div>
+    <div class="match-strip">
+      <span>Tempo</span>
+      <strong id="match-clock">--:--</strong>
+    </div>
     <div class="hud-grid">
       <div id="wave-section" class="section is-hidden">
         <div class="label">Wave</div>
@@ -21,6 +29,9 @@
         <div id="gank-alert" class="alert seguro">Baixo</div>
       </div>
     </div>
+    <div id="objective-panel" class="objective-panel is-hidden"></div>
+    <div id="vision-panel" class="compact-panel is-hidden"></div>
+    <div id="matchup-panel" class="compact-panel is-hidden"></div>
     <div id="threat-chip" class="threat-chip is-hidden" data-severity="info">
       <div class="threat-topline">
         <span id="threat-severity" class="threat-severity">INFO</span>

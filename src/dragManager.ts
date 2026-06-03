@@ -16,7 +16,6 @@ interface DragEventLike {
  */
 export async function initDragManager(): Promise<void> {
     const api = window.electronAPI;
-    let editModeEnabled = false;
 
     // Load saved positions
     let savedPositions: Record<string, WidgetPosition> = {};
@@ -41,10 +40,25 @@ export async function initDragManager(): Promise<void> {
         }
 
         // Setup interact.js draggable
+        const dragEdges = widget.querySelectorAll<HTMLElement>('.drag-edge');
+
+        dragEdges.forEach((dragEdge) => {
+            dragEdge.addEventListener('mouseenter', () => {
+                api.setIgnoreMouseEvents(false);
+            });
+
+            dragEdge.addEventListener('mouseleave', () => {
+                api.setIgnoreMouseEvents(true, { forward: true });
+            });
+
+            dragEdge.addEventListener('mouseup', () => {
+                api.setIgnoreMouseEvents(true, { forward: true });
+            });
+        });
+
         const interactable = interact(widget).draggable({
-            // Only allow dragging from the handle
-            allowFrom: '.drag-handle',
-            enabled: editModeEnabled,
+            allowFrom: '.drag-edge',
+            enabled: true,
 
             inertia: true,
 
@@ -57,6 +71,7 @@ export async function initDragManager(): Promise<void> {
 
             listeners: {
                 start(event: DragEventLike) {
+                    api.setIgnoreMouseEvents(false);
                     event.target.classList.add('dragging');
                 },
 
@@ -81,34 +96,13 @@ export async function initDragManager(): Promise<void> {
                     api.saveWidgetPosition(widgetId, { x, y }).catch((err: unknown) => {
                         console.warn(`[DragManager] Failed to save position for ${widgetId}:`, err);
                     });
+                    api.setIgnoreMouseEvents(true, { forward: true });
                 },
             },
         });
 
-        const applyWidgetEditMode = (enabled: boolean) => {
-            widget.setAttribute('data-edit-mode', String(enabled));
-            interactable.draggable({ enabled });
-        };
-
-        applyWidgetEditMode(editModeEnabled);
+        interactable.draggable({ enabled: true });
     });
-
-    const applyEditMode = (enabled: boolean) => {
-        editModeEnabled = enabled;
-        document.body.classList.toggle('is-editing', enabled);
-        widgets.forEach((widget) => {
-            widget.setAttribute('data-edit-mode', String(enabled));
-            interact(widget).draggable({ enabled });
-        });
-    };
-
-    try {
-        applyEditMode(await api.getEditMode());
-    } catch (err) {
-        console.warn('[DragManager] Could not load edit mode state:', err);
-    }
-
-    api.onEditModeChanged(applyEditMode);
 
     console.log(`[DragManager] Initialized ${widgets.length} draggable widget(s)`);
 }
