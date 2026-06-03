@@ -1,154 +1,137 @@
-# EloCoach w/ <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/electron/electron-original.svg" width="25"/>
+# EloCoach
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Jest](https://img.shields.io/badge/Jest-C21325?logo=jest&logoColor=white)](https://jestjs.io/)
+Overlay desktop em Electron e TypeScript para apoio tatico em partidas competitivas, usando League of Legends como primeiro modelo de dominio.
 
-EloCoach is a cross-platform desktop application built with Electron that provides a transparent overlay for real-time strategic analysis in competitive gaming environments. Leveraging the Riot Live Client API, it enables dynamic monitoring of game states, player tracking, tactical event prediction, and interactive UI elements to enhance decision-making during gameplay.
+O projeto nasceu como um experimento antigo com Electron e foi retomado como estudo de produto, arquitetura e regras de negocio para apps sobrepostos a jogos. A versao atual prioriza funcionamento demonstravel sem o jogo instalado, tipagem consistente e uma base expansivel para novos provedores de dados.
 
-## Features
+## O que o app faz
 
-- **Transparent Overlay Interface**: Click-through window that overlays game visuals without interfering with input, utilizing Electron's window management APIs.
-- **Real-Time Data Polling**: Continuous integration with external APIs for live game state updates, including player positions, objectives, and environmental data.
-- **Tactical Heuristics Engine**: Advanced algorithms for predicting strategic events based on game time, player movements, and environmental factors.
-- **Dynamic UI Components**: Responsive elements displaying timers, alerts, and status indicators that adapt to game phases.
-- **Simulation Mode**: Built-in mock provider for testing and development, allowing offline scenario simulation.
-- **Modular Architecture**: Clean separation of concerns with dedicated providers, logic modules, and data contracts for maintainability.
-- **Type-Safe Development**: Full TypeScript implementation ensuring compile-time type checking and improved code reliability.
-- **Automated Testing**: Comprehensive unit test coverage using Jest framework for critical logic components.
+- Renderiza um HUD transparente e compacto sobre a tela.
+- Mantem a janela em modo click-through por padrao, evitando capturar clique durante a partida.
+- Ativa modo edicao com `Ctrl+Shift+E` para mover widgets com seguranca.
+- Consome dados reais pela Riot Live Client API quando o LoL esta rodando.
+- Oferece `start:demo` com provider mockado para demonstracao offline.
+- Calcula estado de sessao, relogio de waves, risco de gank e contexto de objetivos.
+- Exibe status operacional quando os dados do jogo estao indisponiveis, pausados ou incompletos.
 
-## Tech Stack
+## Por que este projeto existe
 
-- **Framework**: [Electron](https://www.electronjs.org/) - Cross-platform desktop app development
-- **Language**: [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript with static typing
-- **Build Tool**: [Webpack](https://webpack.js.org/) - Module bundling and asset optimization
-- **Testing**: [Jest](https://jestjs.io/) - JavaScript testing framework with mocking capabilities
-- **Linting**: [ESLint](https://eslint.org/) - Code quality and style enforcement
-- **Packaging**: [Electron Forge](https://www.electronforge.io/) - Application packaging and distribution
-- **API Integration**: Riot Live Client API - Real-time game data consumption
+Este repositorio esta sendo enriquecido como peca de portfolio. A ideia nao e vender uma ferramenta pronta para uso competitivo, mas mostrar decisoes tecnicas reais em um produto com restricoes interessantes:
 
-## Prerequisites
+- overlay nao pode atrapalhar o input do jogador;
+- dados locais do jogo podem estar indisponiveis ou incompletos;
+- a UI precisa ser densa, legivel e pequena;
+- regras de negocio devem considerar tempo de partida, telemetria incerta e fases do jogo;
+- o projeto precisa funcionar em modo demo para avaliacao sem League of Legends instalado.
 
-- Node.js (v16 or higher)
-- npm or yarn package manager
-- Access to target gaming platform's local API (for live data integration)
+## Stack
 
-## Installation
+- Electron Forge
+- TypeScript
+- Webpack
+- Jest
+- ESLint
+- Interact.js
+- Riot Live Client API
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/elocoach.git
-   cd elocoach
-   ```
+## Como rodar
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Instale as dependencias:
 
-3. Build the application:
-   ```bash
-   npm run package
-   ```
+```bash
+npm install
+```
 
-## Usage
+Rodar tentando usar a API local do LoL:
 
-### Development Mode
 ```bash
 npm run start
 ```
 
-### Offline Demo Mode
+Rodar em modo demo offline:
+
 ```bash
 npm run start:demo
 ```
 
-Demo mode uses the built-in mock provider and match simulator, so the overlay can be evaluated without League of Legends installed or running.
+Empacotar:
 
-### Production Build
 ```bash
-npm run make
+npm run package
 ```
 
-### Testing
+Testes:
+
 ```bash
-npm run test
+npm test
 ```
 
-The application launches a transparent overlay window that monitors game state in real-time. During active gameplay, it displays:
-- Wave timers with siege minion indicators
-- Tactical risk assessments
-- Enemy champion status and vision data
-- Strategic hypotheses based on current game factors
+Lint:
 
-## Development
-
-### Project Structure
+```bash
+npm run lint
 ```
+
+## Controles
+
+- `Ctrl+Shift+E`: alterna o modo edicao do overlay.
+- Fora do modo edicao, o overlay fica click-through para nao interceptar o mouse.
+- No modo edicao, os widgets exibem realce visual e podem ser arrastados pela area superior.
+
+## Arquitetura
+
+```text
 src/
-├── contracts/          # TypeScript interfaces and data models
-├── logic/             # Core business logic modules
-│   ├── __tests__/     # Unit test files
-│   └── ...            # Tactical engines and predictors
-├── providers/         # Data providers (API integrations)
-└── ...                # Main process and renderer files
+  contracts/   Tipos compartilhados entre main, preload, renderer e dominio
+  logic/       Regras de negocio, heuristicas e modelos testaveis
+  providers/   Fontes de dados reais ou mockadas
+  index.ts     Processo principal do Electron
+  preload.ts   Ponte IPC tipada e isolada
+  renderer.ts  Atualizacao visual do HUD
 ```
 
-### Key Components
+### Providers
 
-- **Providers**: Abstract data access layer supporting multiple data sources (live API, mock data)
-- **Logic Modules**: Specialized engines for game state analysis and prediction algorithms
-- **Contracts**: Strongly-typed data structures ensuring API consistency
-- **Renderer**: UI update logic for dynamic overlay elements
+`RiotProvider` consulta a Live Client API local. `MockProvider` usa o simulador interno para permitir desenvolvimento, testes e apresentacao do produto sem depender do jogo instalado.
 
-### Adding New Features
+### Logica de dominio
 
-1. Define data contracts in `src/contracts/`
-2. Implement logic in appropriate module under `src/logic/`
-3. Add provider methods if new data sources are needed
-4. Update renderer for UI integration
-5. Write comprehensive tests
+Os modulos em `src/logic` separam a parte testavel do produto:
 
-## Testing
+- `GameSessionTracker`: interpreta estado da partida e confiabilidade do relogio.
+- `TacticalEngine`: calcula timers de wave e contexto de minions.
+- `ObjectiveTracker`: deriva eventos de objetivos a partir de dados observados.
+- `JunglerTracker`: identifica e acompanha o jungler inimigo.
+- `GankPredictor`: combina sinais para gerar hipotese e risco.
+- `OverlayViewModel`: transforma dados de jogo em um modelo compacto para UI.
 
-Run the test suite:
-```bash
-npm run test
-```
+## Estado atual
 
-Tests cover:
-- Logic module algorithms
-- Provider data handling
-- Mock data scenarios
-- Error condition handling
+O projeto ja possui:
 
-## Contributing
+- demo offline funcional;
+- contratos IPC tipados;
+- tratamento de telemetria indisponivel;
+- HUD compacto;
+- modo edicao seguro;
+- cobertura de testes para os principais modulos de regra.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Proximos passos planejados
 
-### Code Standards
-- TypeScript strict mode enabled
-- ESLint configuration for code quality
-- Comprehensive test coverage for new features
-- Clear commit messages and documentation
+- Criar mais cenarios mockados para fases diferentes da partida.
+- Evoluir a UI para multiplos widgets pequenos e configuraveis.
+- Adicionar um painel de diagnostico para explicar a origem dos sinais taticos.
+- Separar melhor o dominio por jogo para permitir expansao alem de LoL.
+- Documentar decisoes de arquitetura e limitacoes da Riot Live Client API.
 
-## License
+## Aprendizados destacados
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Electron exige cuidado com seguranca, preload e isolamento de contexto.
+- Overlay para jogos precisa tratar input como requisito de produto, nao detalhe visual.
+- TypeScript ajuda mais quando contratos atravessam processos e fontes de dados.
+- Mock provider transforma um projeto dependente de ambiente externo em algo demonstravel.
+- Regras de negocio ficam mais sustentaveis quando separadas da UI e cobertas por testes.
 
-## Acknowledgments
+## Aviso
 
-- Built with [Electron](https://www.electronjs.org/) for cross-platform desktop capabilities
-- Real-time data integration powered by Riot Games' Live Client API
-- UI assets sourced from Data Dragon and Community Dragon APIs
-- Testing framework provided by [Jest](https://jestjs.io/)
-
-
-
-unidune_test_viwer@!
-(unidune_test_viwer@!)
+EloCoach e um projeto educacional e experimental. Ele nao e afiliado, endossado ou aprovado pela Riot Games.

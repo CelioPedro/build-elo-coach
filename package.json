@@ -2,7 +2,7 @@
   "name": "elocoach",
   "productName": "elocoach",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Electron overlay with typed tactical logic and offline demo mode for competitive games",
   "main": ".webpack/main",
   "private": true,
   "scripts": {
