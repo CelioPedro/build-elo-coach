@@ -5,6 +5,7 @@ export class CompetitiveSignalEngine {
   generateSignals(factors: GameFactors): CompetitiveSignal[] {
     return [
       this.generateLeeSinLevelThreeSignal(factors),
+      this.generatePostGankResetSignal(factors),
       this.generateFirstDragonSetupSignal(factors)
     ]
       .filter((signal): signal is CompetitiveSignal => signal !== null)
@@ -106,6 +107,42 @@ export class CompetitiveSignalEngine {
       reason: botSideJungler
         ? 'Lee resetou para baixo'
         : 'prepare wave/visao',
+      evidence,
+      score
+    };
+  }
+
+  private generatePostGankResetSignal(factors: GameFactors): CompetitiveSignal | null {
+    const { objectives, lanePressures, gameTime } = factors;
+    const dragon = objectives.find(objective => objective.type === ObjectiveType.DRAGON);
+    const topLaneState = lanePressures.find(lane => lane.lane === Lane.TOP);
+
+    if (gameTime < 238 || gameTime > 270 || topLaneState?.pressure !== 'receding') {
+      return null;
+    }
+
+    const dragonSpawnAt = dragon?.respawnAt ?? (dragon?.alive ? 300 : null);
+    const dragonSoon = dragonSpawnAt !== null && dragonSpawnAt - gameTime <= 65;
+
+    if (!dragonSoon) {
+      return null;
+    }
+
+    const evidence: SignalEvidence[] = [
+      { label: 'top resolvida', weight: 20, source: 'simulated' },
+      { label: 'dragon em breve', weight: 20, source: 'inferred' },
+      { label: 'janela de reset curta', weight: 15, source: 'inferred' }
+    ];
+    const score = evidence.reduce((total, item) => total + item.weight, 0);
+
+    return {
+      id: 'post-gank-reset-window',
+      kind: 'tempo',
+      severity: this.severityFromScore(score),
+      confidence: this.confidenceFromScore(score),
+      timeWindow: { from: 238, to: 270 },
+      label: 'Reset curto -> dragao',
+      reason: 'top resolvida + 5:00 chegando',
       evidence,
       score
     };

@@ -2,6 +2,7 @@ import { initDragManager } from './dragManager';
 import { Player } from './contracts/gameData';
 import { DataDragonChampionResponse, GameUpdatePayload } from './contracts/ipc';
 import { Position, Ward } from './contracts/junglerData';
+import { CompetitiveSignal } from './contracts/signals';
 import { createOverlayViewModel } from './logic/overlayViewModel';
 import './index.css';
 
@@ -23,6 +24,7 @@ const threatSeverity = document.getElementById('threat-severity') as HTMLElement
 const threatWindow = document.getElementById('threat-window') as HTMLElement;
 const threatLabel = document.getElementById('threat-label') as HTMLElement;
 const threatReason = document.getElementById('threat-reason') as HTMLElement;
+const tempoRail = document.getElementById('tempo-rail') as HTMLElement;
 
 let isGameActive = false;
 let ddragonVersion = '15.1.1';
@@ -176,6 +178,7 @@ function updateUI(data: GameUpdatePayload): void {
 
     updateEnemyChampions(players, wards, gameTime);
     updateThreatChip(data);
+    updateTempoRail(data.signals || []);
 
     waveTimer.textContent = waveTime;
     waveTimer.style.color = isSiege ? '#ff6b35' : '#00ffcc';
@@ -196,6 +199,7 @@ function updateUI(data: GameUpdatePayload): void {
   setHidden(junglerInfo, true);
   setHidden(enemyTeam, true);
   setHidden(threatChip, true);
+  setHidden(tempoRail, true);
   gameStatus.textContent = viewModel.statusText;
   gankHypothesisEl.textContent = '';
 }
@@ -215,6 +219,36 @@ function updateThreatChip(data: GameUpdatePayload): void {
   threatLabel.textContent = signal.label;
   threatReason.textContent = signal.reason;
   setHidden(threatChip, false);
+}
+
+function updateTempoRail(signals: CompetitiveSignal[]): void {
+  const railSignals = signals.slice(0, 3);
+
+  if (railSignals.length === 0) {
+    tempoRail.replaceChildren();
+    setHidden(tempoRail, true);
+    return;
+  }
+
+  const items = railSignals.map(signal => {
+    const item = document.createElement('div');
+    item.className = 'tempo-item';
+    item.dataset.severity = signal.severity;
+
+    const time = document.createElement('div');
+    time.className = 'tempo-time';
+    time.textContent = `${formatClock(signal.timeWindow.from)}`;
+
+    const label = document.createElement('div');
+    label.className = 'tempo-label';
+    label.textContent = signal.label;
+
+    item.append(time, label);
+    return item;
+  });
+
+  tempoRail.replaceChildren(...items);
+  setHidden(tempoRail, false);
 }
 
 function formatClock(totalSeconds: number): string {

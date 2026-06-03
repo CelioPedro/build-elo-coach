@@ -108,4 +108,41 @@ describe('CompetitiveSignalEngine', () => {
       reason: 'Lee resetou para baixo'
     });
   });
+
+  test('generates post-gank reset tempo before dragon setup', () => {
+    const engine = new CompetitiveSignalEngine();
+
+    const signals = engine.generateSignals({
+      gameTime: 250,
+      junglerState: {
+        championName: 'LeeSin',
+        position: { x: 1500, y: 1500 },
+        region: MapRegion.BASE,
+        lastSeen: 250,
+        isVisible: true,
+        level: 4,
+        creepScore: 16,
+        pathingProfile: {
+          championName: 'LeeSin',
+          preferredPath: [MapRegion.BOT_JUNGLE, MapRegion.TOP_JUNGLE],
+          gankFrequency: 0.8,
+          aggressionLevel: 9,
+          commonTargets: [Lane.TOP, Lane.MID],
+          averageGankDuration: 25
+        }
+      },
+      wards: [],
+      objectives: [{ type: ObjectiveType.DRAGON, alive: false, respawnAt: 300, position: { x: 9800, y: 4400 } }],
+      lanePressures: [{ lane: Lane.TOP, pressure: 'receding' }]
+    });
+
+    expect(signals[0]).toMatchObject({
+      id: 'post-gank-reset-window',
+      kind: 'tempo',
+      severity: 'watch',
+      confidence: 'medium',
+      label: 'Reset curto -> dragao',
+      reason: 'top resolvida + 5:00 chegando'
+    });
+  });
 });

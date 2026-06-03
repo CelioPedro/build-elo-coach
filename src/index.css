@@ -200,6 +200,42 @@ body {
   color: #c8aa6e;
 }
 
+.tempo-rail {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.tempo-item {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 6px;
+  align-items: center;
+  min-height: 18px;
+  font-size: 9px;
+  color: #a09b8c;
+}
+
+.tempo-time {
+  color: #c8aa6e;
+  font-family: 'Courier New', monospace;
+}
+
+.tempo-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f0e6d2;
+}
+
+.tempo-item[data-severity='danger'] .tempo-time {
+  color: #ff4d4d;
+}
+
+.tempo-item[data-severity='watch'] .tempo-time {
+  color: #ffaa00;
+}
+
 .status {
   font-size: 10px;
   line-height: 1.35;
