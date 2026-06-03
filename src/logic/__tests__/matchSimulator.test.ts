@@ -86,4 +86,31 @@ describe('MatchSimulator', () => {
 
     simulator.stop();
   });
+
+  test('scripts mid and late game objectives through match end', () => {
+    const simulator = new MatchSimulator();
+
+    simulator.start();
+    jest.advanceTimersByTime(690_000);
+    const secondDragon = simulator.getObjectives().find(objective => objective.type === ObjectiveType.DRAGON);
+    expect(secondDragon?.alive).toBe(false);
+    expect(secondDragon?.killedAt).toBe(690);
+
+    jest.advanceTimersByTime(210_000);
+    const herald = simulator.getObjectives().find(objective => objective.type === ObjectiveType.HERALD);
+    expect(simulator.getGameTime()).toBe(900);
+    expect(herald?.alive).toBe(false);
+    expect(herald?.killedAt).toBe(900);
+
+    jest.advanceTimersByTime(360_000);
+    const baron = simulator.getObjectives().find(objective => objective.type === ObjectiveType.BARON);
+    expect(simulator.getGameTime()).toBe(1260);
+    expect(baron?.alive).toBe(false);
+    expect(baron?.killedAt).toBe(1260);
+
+    jest.advanceTimersByTime(240_000);
+    expect(simulator.getGameTime()).toBe(1500);
+    expect(simulator.isEnded()).toBe(true);
+    expect(simulator.isSimulating()).toBe(false);
+  });
 });

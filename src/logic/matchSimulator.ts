@@ -131,9 +131,12 @@ const DEMO_DRAFT: DemoChampion[] = [
   }
 ];
 
+const MATCH_END_TIME = 1500;
+
 export class MatchSimulator {
   private gameTime = 0;
   private isRunning = false;
+  private hasEnded = false;
   private intervalId: NodeJS.Timeout | null = null;
   private players: Player[] = [];
   private wards: Ward[] = [];
@@ -147,6 +150,7 @@ export class MatchSimulator {
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
+    this.hasEnded = false;
     this.gameTime = 0;
     this.resetScenario();
     this.intervalId = setInterval(() => this.update(), 1000);
@@ -162,8 +166,14 @@ export class MatchSimulator {
   }
 
   private update(): void {
+    if (this.hasEnded) return;
+
     this.gameTime += 1;
     this.applyLeeSinLevelThreeScenario();
+
+    if (this.gameTime >= MATCH_END_TIME) {
+      this.completeMatch();
+    }
   }
 
   private resetScenario(): void {
@@ -237,7 +247,56 @@ export class MatchSimulator {
       return;
     }
 
-    this.setPlayerState(leeSin, POSITIONS[MapRegion.BOT_JUNGLE], 4, 24);
+    if (this.gameTime < 420) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.BOT_JUNGLE], 5, 32);
+      return;
+    }
+
+    if (this.gameTime < 540) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.TOP_JUNGLE], 6, 48);
+      return;
+    }
+
+    if (this.gameTime < 690) {
+      this.setPlayerState(leeSin, { x: 9600, y: 4700 }, 7, 64);
+      return;
+    }
+
+    if (this.gameTime < 840) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.TOP_JUNGLE], 8, 80);
+      return;
+    }
+
+    if (this.gameTime < 900) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.RIVER], 9, 92);
+      return;
+    }
+
+    if (this.gameTime < 1080) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.MID_LANE], 10, 108);
+      return;
+    }
+
+    if (this.gameTime < 1200) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.TOP_JUNGLE], 11, 128);
+      return;
+    }
+
+    if (this.gameTime < 1260) {
+      this.setPlayerState(leeSin, { x: 5000, y: 10400 }, 12, 140);
+      return;
+    }
+
+    if (this.gameTime < 1440) {
+      this.setPlayerState(leeSin, POSITIONS[MapRegion.MID_LANE], 14, 164);
+      leeSin.scores.kills = 4;
+      leeSin.scores.assists = 8;
+      return;
+    }
+
+    this.setPlayerState(leeSin, { x: 14000, y: 14000 }, 15, 180);
+    leeSin.scores.kills = 5;
+    leeSin.scores.assists = 10;
   }
 
   private updateLanePressures(): void {
@@ -245,10 +304,17 @@ export class MatchSimulator {
       ? 'pushing'
       : this.gameTime >= 215 ? 'receding' : 'neutral';
 
+    const midPressure: LanePressure['pressure'] = this.gameTime >= 900 && this.gameTime < 1080
+      ? 'pushing'
+      : this.gameTime >= 1260 ? 'pushing' : this.gameTime >= 135 && this.gameTime < 190 ? 'pushing' : 'neutral';
+    const botPressure: LanePressure['pressure'] = this.gameTime >= 620 && this.gameTime < 690
+      ? 'pushing'
+      : this.gameTime >= 285 && this.gameTime < 345 ? 'receding' : 'neutral';
+
     this.lanePressures = [
-      { lane: Lane.TOP, pressure: topPressure, towerHealth: 100, inhibitorAlive: true },
-      { lane: Lane.MID, pressure: this.gameTime >= 135 && this.gameTime < 190 ? 'pushing' : 'neutral', towerHealth: 100, inhibitorAlive: true },
-      { lane: Lane.BOT, pressure: this.gameTime >= 285 && this.gameTime < 345 ? 'receding' : 'neutral', towerHealth: 100, inhibitorAlive: true }
+      { lane: Lane.TOP, pressure: this.gameTime >= 810 && this.gameTime < 900 ? 'pushing' : topPressure, towerHealth: this.gameTime >= 900 ? 45 : 100, inhibitorAlive: this.gameTime < 1380 },
+      { lane: Lane.MID, pressure: midPressure, towerHealth: this.gameTime >= 1080 ? 35 : 100, inhibitorAlive: this.gameTime < 1440 },
+      { lane: Lane.BOT, pressure: botPressure, towerHealth: this.gameTime >= 690 ? 65 : 100, inhibitorAlive: true }
     ];
 
     const jax = this.findPlayer('Jax');
@@ -275,30 +341,77 @@ export class MatchSimulator {
         duration: 90
       });
     }
+
+    if (this.gameTime >= 580 && this.gameTime < 690) {
+      this.wards.push({
+        id: 'chaos_dragon_control',
+        position: { x: 9300, y: 5100 },
+        type: WardType.PINK,
+        team: 'CHAOS',
+        placedAt: 580,
+        duration: 180
+      });
+    }
+
+    if (this.gameTime >= 1140 && this.gameTime < 1260) {
+      this.wards.push({
+        id: 'chaos_baron_control',
+        position: { x: 5200, y: 9900 },
+        type: WardType.PINK,
+        team: 'CHAOS',
+        placedAt: 1140,
+        duration: 180
+      });
+    }
   }
 
   private updateObjectives(): void {
     this.objectives = [
-      {
-        type: ObjectiveType.DRAGON,
-        alive: this.gameTime >= 300 && this.gameTime < 342,
-        killedAt: this.gameTime >= 342 ? 342 : undefined,
-        respawnAt: this.gameTime < 300 ? 300 : this.gameTime >= 342 ? 642 : undefined,
-        position: { x: 9800, y: 4400 }
-      },
+      this.getDragonState(),
       {
         type: ObjectiveType.HERALD,
-        alive: this.gameTime >= 840 && this.gameTime < 1200,
+        alive: this.gameTime >= 840 && this.gameTime < 900,
+        killedAt: this.gameTime >= 900 ? 900 : undefined,
         respawnAt: this.gameTime < 840 ? 840 : undefined,
         position: { x: 5000, y: 10400 }
       },
       {
         type: ObjectiveType.BARON,
-        alive: this.gameTime >= 1200,
-        respawnAt: this.gameTime < 1200 ? 1200 : undefined,
+        alive: this.gameTime >= 1200 && this.gameTime < 1260,
+        killedAt: this.gameTime >= 1260 ? 1260 : undefined,
+        respawnAt: this.gameTime < 1200 ? 1200 : this.gameTime >= 1260 ? 1620 : undefined,
         position: { x: 5000, y: 10400 }
       }
     ];
+  }
+
+  private getDragonState(): Objective {
+    if (this.gameTime < 300) {
+      return { type: ObjectiveType.DRAGON, alive: false, respawnAt: 300, position: { x: 9800, y: 4400 } };
+    }
+
+    if (this.gameTime < 342) {
+      return { type: ObjectiveType.DRAGON, alive: true, position: { x: 9800, y: 4400 } };
+    }
+
+    if (this.gameTime < 642) {
+      return { type: ObjectiveType.DRAGON, alive: false, killedAt: 342, respawnAt: 642, position: { x: 9800, y: 4400 } };
+    }
+
+    if (this.gameTime < 690) {
+      return { type: ObjectiveType.DRAGON, alive: true, position: { x: 9800, y: 4400 } };
+    }
+
+    return { type: ObjectiveType.DRAGON, alive: false, killedAt: 690, respawnAt: 990, position: { x: 9800, y: 4400 } };
+  }
+
+  private completeMatch(): void {
+    this.hasEnded = true;
+    this.isRunning = false;
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 
   private createPlayer(champion: DemoChampion): Player {
@@ -362,5 +475,9 @@ export class MatchSimulator {
 
   isSimulating(): boolean {
     return this.isRunning;
+  }
+
+  isEnded(): boolean {
+    return this.hasEnded;
   }
 }

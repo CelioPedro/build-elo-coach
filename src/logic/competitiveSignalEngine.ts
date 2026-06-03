@@ -6,7 +6,10 @@ export class CompetitiveSignalEngine {
     return [
       this.generateLeeSinLevelThreeSignal(factors),
       this.generatePostGankResetSignal(factors),
-      this.generateFirstDragonSetupSignal(factors)
+      this.generateDragonSetupSignal(factors),
+      this.generateHeraldSetupSignal(factors),
+      this.generateBaronSetupSignal(factors),
+      this.generateClosingPushSignal(factors)
     ]
       .filter((signal): signal is CompetitiveSignal => signal !== null)
       .sort((a, b) => b.score - a.score);
@@ -62,16 +65,21 @@ export class CompetitiveSignalEngine {
     };
   }
 
-  private generateFirstDragonSetupSignal(factors: GameFactors): CompetitiveSignal | null {
+  private generateDragonSetupSignal(factors: GameFactors): CompetitiveSignal | null {
     const { junglerState, objectives, lanePressures, gameTime } = factors;
     const dragon = objectives.find(objective => objective.type === ObjectiveType.DRAGON);
 
-    if (!dragon || gameTime < 270 || gameTime > 330 || dragon.killedAt) {
+    if (!dragon || dragon.killedAt) {
       return null;
     }
 
-    const dragonSpawnSoon = !dragon.alive && dragon.respawnAt !== undefined && dragon.respawnAt <= 300;
-    const dragonLive = dragon.alive && gameTime >= 300;
+    const spawnAt = dragon.alive ? gameTime : dragon.respawnAt;
+    if (spawnAt === undefined || gameTime < spawnAt - 30 || gameTime > spawnAt + 30) {
+      return null;
+    }
+
+    const dragonSpawnSoon = !dragon.alive && dragon.respawnAt !== undefined;
+    const dragonLive = dragon.alive && gameTime >= spawnAt;
     const botSideJungler = junglerState?.region === MapRegion.BOT_JUNGLE ||
       junglerState?.region === MapRegion.RIVER ||
       junglerState?.region === MapRegion.MID_JUNGLE;
@@ -82,9 +90,10 @@ export class CompetitiveSignalEngine {
       return null;
     }
 
+    const firstDragon = spawnAt <= 330;
     const evidence: SignalEvidence[] = [
       { label: dragonLive ? 'dragao vivo' : 'dragao nasce em breve', weight: 25, source: 'simulated' },
-      { label: 'janela 5:00-5:30', weight: 15, source: 'inferred' }
+      { label: firstDragon ? 'janela 5:00-5:30' : 'proxima janela de dragao', weight: 15, source: 'inferred' }
     ];
 
     if (botSideJungler) {
@@ -98,15 +107,129 @@ export class CompetitiveSignalEngine {
     const score = evidence.reduce((total, item) => total + item.weight, 0);
 
     return {
-      id: 'first-dragon-setup',
+      id: firstDragon ? 'first-dragon-setup' : 'second-dragon-setup',
       kind: 'objective',
       severity: this.severityFromScore(score),
       confidence: this.confidenceFromScore(score),
-      timeWindow: { from: 270, to: 330 },
-      label: dragonLive ? 'Dragao vivo -> bot side' : 'Dragao em 5:00',
+      timeWindow: { from: spawnAt - 30, to: spawnAt + 30 },
+      label: dragonLive ? 'Dragao vivo -> bot side' : `Dragao em ${this.formatClock(spawnAt)}`,
       reason: botSideJungler
         ? 'Lee resetou para baixo'
         : 'prepare wave/visao',
+      evidence,
+      score
+    };
+  }
+
+  private generateHeraldSetupSignal(factors: GameFactors): CompetitiveSignal | null {
+    const { junglerState, objectives, lanePressures, gameTime } = factors;
+    const herald = objectives.find(objective => objective.type === ObjectiveType.HERALD);
+
+    if (!herald || herald.killedAt) return null;
+
+    const spawnAt = herald.alive ? 840 : herald.respawnAt;
+    if (spawnAt === undefined || gameTime < spawnAt - 30 || gameTime > spawnAt + 45) {
+      return null;
+    }
+
+    const topSideJungler = junglerState?.region === MapRegion.TOP_JUNGLE ||
+      junglerState?.region === MapRegion.RIVER ||
+      junglerState?.region === MapRegion.TOP_LANE;
+    const topPressure = lanePressures.find(lane => lane.lane === Lane.TOP)?.pressure === 'pushing';
+    const evidence: SignalEvidence[] = [
+      { label: herald.alive ? 'Herald vivo' : 'Herald nasce em breve', weight: 25, source: 'simulated' },
+      { label: 'pressao no lado superior', weight: 15, source: 'inferred' }
+    ];
+
+    if (topSideJungler) {
+      evidence.push({ label: 'jungler no top side', weight: 20, source: 'simulated', freshnessSeconds: 0 });
+    }
+
+    if (topPressure) {
+      evidence.push({ label: 'top com prioridade', weight: 15, source: 'simulated' });
+    }
+
+    const score = evidence.reduce((total, item) => total + item.weight, 0);
+
+    return {
+      id: 'herald-setup',
+      kind: 'objective',
+      severity: this.severityFromScore(score),
+      confidence: this.confidenceFromScore(score),
+      timeWindow: { from: spawnAt - 30, to: spawnAt + 45 },
+      label: herald.alive ? 'Herald -> placas mid' : `Herald em ${this.formatClock(spawnAt)}`,
+      reason: topSideJungler ? 'Lee controla lado superior' : 'prepare visao top river',
+      evidence,
+      score
+    };
+  }
+
+  private generateBaronSetupSignal(factors: GameFactors): CompetitiveSignal | null {
+    const { junglerState, objectives, lanePressures, gameTime } = factors;
+    const baron = objectives.find(objective => objective.type === ObjectiveType.BARON);
+
+    if (!baron || baron.killedAt) return null;
+
+    const spawnAt = baron.alive ? 1200 : baron.respawnAt;
+    if (spawnAt === undefined || gameTime < spawnAt - 30 || gameTime > spawnAt + 60) {
+      return null;
+    }
+
+    const topSideJungler = junglerState?.region === MapRegion.TOP_JUNGLE ||
+      junglerState?.region === MapRegion.RIVER;
+    const midPriority = lanePressures.find(lane => lane.lane === Lane.MID)?.pressure === 'pushing';
+    const evidence: SignalEvidence[] = [
+      { label: baron.alive ? 'Baron vivo' : 'Baron nasce em breve', weight: 30, source: 'simulated' },
+      { label: 'janela 20:00+', weight: 20, source: 'inferred' }
+    ];
+
+    if (topSideJungler) {
+      evidence.push({ label: 'jungler no rio superior', weight: 20, source: 'simulated', freshnessSeconds: 0 });
+    }
+
+    if (midPriority) {
+      evidence.push({ label: 'mid com prioridade', weight: 15, source: 'simulated' });
+    }
+
+    const score = evidence.reduce((total, item) => total + item.weight, 0);
+
+    return {
+      id: 'baron-setup',
+      kind: 'objective',
+      severity: this.severityFromScore(score),
+      confidence: this.confidenceFromScore(score),
+      timeWindow: { from: spawnAt - 30, to: spawnAt + 60 },
+      label: baron.alive ? 'Baron vivo -> setup' : `Baron em ${this.formatClock(spawnAt)}`,
+      reason: midPriority ? 'mid empurrada + controle topo' : 'controle visao antes do rio',
+      evidence,
+      score
+    };
+  }
+
+  private generateClosingPushSignal(factors: GameFactors): CompetitiveSignal | null {
+    const { objectives, lanePressures, gameTime } = factors;
+    const baron = objectives.find(objective => objective.type === ObjectiveType.BARON);
+    const midPressure = lanePressures.find(lane => lane.lane === Lane.MID);
+
+    if (!baron?.killedAt || gameTime < 1260 || gameTime > 1440 || midPressure?.pressure !== 'pushing') {
+      return null;
+    }
+
+    const evidence: SignalEvidence[] = [
+      { label: 'Baron abatido', weight: 30, source: 'simulated', freshnessSeconds: gameTime - baron.killedAt },
+      { label: 'mid lane avancada', weight: 25, source: 'simulated' },
+      { label: 'janela de fechamento', weight: 20, source: 'inferred' }
+    ];
+    const score = evidence.reduce((total, item) => total + item.weight, 0);
+
+    return {
+      id: 'closing-push',
+      kind: 'tempo',
+      severity: this.severityFromScore(score),
+      confidence: this.confidenceFromScore(score),
+      timeWindow: { from: 1260, to: 1440 },
+      label: 'Baron buff -> fechar mid',
+      reason: 'mid avancada + buff ativo',
       evidence,
       score
     };
@@ -158,5 +281,11 @@ export class CompetitiveSignalEngine {
     if (score >= 80) return 'high';
     if (score >= 50) return 'medium';
     return 'low';
+  }
+
+  private formatClock(totalSeconds: number): string {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 }

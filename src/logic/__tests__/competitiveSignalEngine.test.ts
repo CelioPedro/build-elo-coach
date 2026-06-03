@@ -145,4 +145,120 @@ describe('CompetitiveSignalEngine', () => {
       reason: 'top resolvida + 5:00 chegando'
     });
   });
+
+  test('generates recurring dragon setup for second dragon', () => {
+    const engine = new CompetitiveSignalEngine();
+
+    const signals = engine.generateSignals({
+      gameTime: 642,
+      junglerState: {
+        championName: 'LeeSin',
+        position: { x: 9600, y: 4700 },
+        region: MapRegion.RIVER,
+        lastSeen: 642,
+        isVisible: true,
+        level: 7,
+        creepScore: 64,
+        pathingProfile: {
+          championName: 'LeeSin',
+          preferredPath: [MapRegion.BOT_JUNGLE, MapRegion.TOP_JUNGLE],
+          gankFrequency: 0.8,
+          aggressionLevel: 9,
+          commonTargets: [Lane.TOP, Lane.MID],
+          averageGankDuration: 25
+        }
+      },
+      wards: [],
+      objectives: [{ type: ObjectiveType.DRAGON, alive: true, position: { x: 9800, y: 4400 } }],
+      lanePressures: [{ lane: Lane.BOT, pressure: 'pushing' }]
+    });
+
+    expect(signals[0]).toMatchObject({
+      id: 'second-dragon-setup',
+      kind: 'objective',
+      label: 'Dragao vivo -> bot side'
+    });
+  });
+
+  test('generates Herald setup on the top side', () => {
+    const engine = new CompetitiveSignalEngine();
+
+    const signals = engine.generateSignals({
+      gameTime: 840,
+      junglerState: {
+        championName: 'LeeSin',
+        position: { x: 4200, y: 9400 },
+        region: MapRegion.RIVER,
+        lastSeen: 840,
+        isVisible: true,
+        level: 9,
+        creepScore: 92,
+        pathingProfile: {
+          championName: 'LeeSin',
+          preferredPath: [MapRegion.TOP_JUNGLE],
+          gankFrequency: 0.8,
+          aggressionLevel: 9,
+          commonTargets: [Lane.TOP],
+          averageGankDuration: 25
+        }
+      },
+      wards: [],
+      objectives: [{ type: ObjectiveType.HERALD, alive: true, position: { x: 5000, y: 10400 } }],
+      lanePressures: [{ lane: Lane.TOP, pressure: 'pushing' }]
+    });
+
+    expect(signals[0]).toMatchObject({
+      id: 'herald-setup',
+      kind: 'objective',
+      label: 'Herald -> placas mid'
+    });
+  });
+
+  test('generates Baron setup and closing push signals', () => {
+    const engine = new CompetitiveSignalEngine();
+
+    const baronSetup = engine.generateSignals({
+      gameTime: 1200,
+      junglerState: {
+        championName: 'LeeSin',
+        position: { x: 5000, y: 10400 },
+        region: MapRegion.RIVER,
+        lastSeen: 1200,
+        isVisible: true,
+        level: 12,
+        creepScore: 140,
+        pathingProfile: {
+          championName: 'LeeSin',
+          preferredPath: [MapRegion.TOP_JUNGLE],
+          gankFrequency: 0.8,
+          aggressionLevel: 9,
+          commonTargets: [Lane.MID],
+          averageGankDuration: 25
+        }
+      },
+      wards: [],
+      objectives: [{ type: ObjectiveType.BARON, alive: true, position: { x: 5000, y: 10400 } }],
+      lanePressures: [{ lane: Lane.MID, pressure: 'pushing' }]
+    });
+
+    expect(baronSetup[0]).toMatchObject({
+      id: 'baron-setup',
+      kind: 'objective',
+      label: 'Baron vivo -> setup'
+    });
+
+    const closingPush = engine.generateSignals({
+      gameTime: 1320,
+      junglerState: null,
+      wards: [],
+      objectives: [{ type: ObjectiveType.BARON, alive: false, killedAt: 1260, respawnAt: 1620, position: { x: 5000, y: 10400 } }],
+      lanePressures: [{ lane: Lane.MID, pressure: 'pushing' }]
+    });
+
+    expect(closingPush[0]).toMatchObject({
+      id: 'closing-push',
+      kind: 'tempo',
+      label: 'Baron buff -> fechar mid'
+    });
+  });
 });

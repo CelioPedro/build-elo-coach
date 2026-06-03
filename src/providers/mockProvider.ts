@@ -79,6 +79,10 @@ export class MockProvider implements GameDataProvider {
 
   async getGameState(): Promise<GameState> {
     if (this.isSimulating) {
+      if (this.simulator?.isEnded()) {
+        this.mockGameState = GameState.NotActive;
+        return this.mockGameState;
+      }
       return this.mockGameState;
     }
     // Simulate game starting after some time
