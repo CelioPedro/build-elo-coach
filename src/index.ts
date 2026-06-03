@@ -8,7 +8,7 @@ import { MockProvider } from './providers/mockProvider';
 import { JunglerTracker } from './logic/junglerTracker';
 import { GankPredictor } from './logic/gankPredictor';
 import { TacticalEngine } from './logic/tacticalEngine';
-import { GameSessionTracker, ProviderMode } from './logic/gameSessionTracker';
+import { GameSessionState, GameSessionTracker, ProviderMode } from './logic/gameSessionTracker';
 import { GameFactors, LanePressure, Objective, Ward } from './contracts/junglerData';
 import { GameDataProvider, GameState, Telemetry } from './contracts/provider';
 import { ExternalFetchType, WidgetPosition } from './contracts/ipc';
@@ -26,8 +26,18 @@ let providerMode: ProviderMode = 'riot';
 let sessionTracker: GameSessionTracker;
 let junglerTracker: JunglerTracker;
 let gankPredictor: GankPredictor;
-let gameUpdateInterval: NodeJS.Timeout | null = null;
+let gameUpdateTimer: NodeJS.Timeout | null = null;
 let editModeEnabled = false;
+
+const POLLING_INTERVAL_MS: Record<GameSessionState, number> = {
+  idle: 5000,
+  loading: 1000,
+  live: 1000,
+  stalled: 2500,
+  reconnecting: 2000,
+  ended: 5000,
+  demo: 1000
+};
 
 function applyEditMode(enabled: boolean): boolean {
   editModeEnabled = enabled;
@@ -146,8 +156,6 @@ app.on('ready', () => {
     applyEditMode(!editModeEnabled);
   });
 
-  // Iniciar monitoramento do jogo
-  // Iniciar monitoramento do jogo
   startGameMonitoring();
 
   // Test Connectivity from Main Process
@@ -179,6 +187,7 @@ app.on('activate', () => {
 });
 
 app.on('will-quit', () => {
+  stopGameMonitoring();
   globalShortcut.unregisterAll();
 });
 
@@ -214,38 +223,23 @@ ipcMain.handle('fetch-external', async (_event, url: string, type: ExternalFetch
 ipcMain.handle('start-simulation', () => {
   if (provider instanceof MockProvider) {
     provider.startSimulation();
-    // Change polling to 1s for simulation
-    if (gameUpdateInterval) {
-      clearInterval(gameUpdateInterval);
-    }
-    gameUpdateInterval = setInterval(async () => {
-      await updateGameData();
-    }, 1000);
+    startGameMonitoring();
   }
 });
 
 ipcMain.handle('stop-simulation', () => {
   if (provider instanceof MockProvider) {
     provider.stopSimulation();
-    // Change back to 2s polling
-    if (gameUpdateInterval) {
-      clearInterval(gameUpdateInterval);
-    }
-    gameUpdateInterval = setInterval(async () => {
-      await updateGameData();
-    }, 2000);
+    startGameMonitoring();
   }
 });
 
 // Função para atualizar dados do jogo
-async function updateGameData(): Promise<void> {
+async function updateGameData(): Promise<GameSessionState> {
   try {
     const gameState = await provider.getGameState();
     const gameTime = await provider.getGameTime();
     const session = sessionTracker.update({ gameState, gameTime });
-
-    // Debug log to trace state
-    console.log(`[DEBUG] GameState: ${gameState}, GameTime: ${gameTime}`);
 
     // Default values
     let waveTime = '--:--';
@@ -269,7 +263,6 @@ async function updateGameData(): Promise<void> {
 
       if (provider.lastError) {
         const errStr = provider.lastError;
-        console.log('[DEBUG] Last Error:', errStr);
         if (errStr.includes('ECONNREFUSED')) {
           error = errStr;
           errorType = 'connect_refused';
@@ -285,12 +278,6 @@ async function updateGameData(): Promise<void> {
     if (gameState === GameState.InGame || gameState === GameState.Loading) {
       try {
         players = await provider.getPlayerList();
-
-        if (players.length > 0) {
-          // Debug logging for champion names
-          console.log('[DEBUG] First Player:', JSON.stringify(players[0]));
-          console.log(`[DEBUG] Champion: ${players[0].championName}, Raw: ${players[0].rawChampionName}`);
-        }
 
         // Update jungler tracker
         junglerTracker.updateJunglerState(players);
@@ -362,14 +349,10 @@ async function updateGameData(): Promise<void> {
         errorType
       };
 
-      // Log payload for debugging if needed
-      if (gameState !== GameState.NotActive) {
-        // console.log('[DEBUG] Sending Payload:', JSON.stringify(payload));
-      }
-
       mainWindow.webContents.send('game-update', payload);
     }
 
+    return session.state;
   } catch (error) {
     console.error('Erro no monitoramento:', error);
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -384,12 +367,29 @@ async function updateGameData(): Promise<void> {
         errorType: errorType
       });
     }
+    return 'reconnecting';
   }
 }
 
 // Função para iniciar o monitoramento do jogo
 function startGameMonitoring(): void {
-  gameUpdateInterval = setInterval(async () => {
-    await updateGameData();
-  }, 1000); // Atualizar a cada 1 segundo
+  scheduleNextGameMonitoringTick(0);
+}
+
+function stopGameMonitoring(): void {
+  if (gameUpdateTimer) {
+    clearTimeout(gameUpdateTimer);
+    gameUpdateTimer = null;
+  }
+}
+
+function scheduleNextGameMonitoringTick(delayMs: number): void {
+  if (gameUpdateTimer) {
+    clearTimeout(gameUpdateTimer);
+  }
+
+  gameUpdateTimer = setTimeout(async () => {
+    const sessionState = await updateGameData();
+    scheduleNextGameMonitoringTick(POLLING_INTERVAL_MS[sessionState]);
+  }, delayMs);
 }
