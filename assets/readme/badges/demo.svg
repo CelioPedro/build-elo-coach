@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="160" height="36" viewBox="0 0 160 36" role="img" aria-label="Demo offline">
-  <rect width="160" height="36" rx="15" fill="#062f2b"/>
-  <rect x="1" y="1" width="158" height="34" rx="14" fill="none" stroke="#00ffcc" stroke-opacity=".75"/>
-  <circle cx="22" cy="18" r="8" fill="#00ffcc"/>
-  <path d="M19 13l8 5-8 5z" fill="#062f2b"/>
-  <text x="43" y="15" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">Demo offline</text>
-  <text x="43" y="28" fill="#a8fff0" font-family="Segoe UI, Arial, sans-serif" font-size="9">mock provider</text>
-</svg>

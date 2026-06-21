@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="182" height="36" viewBox="0 0 182 36" role="img" aria-label="Riot Live Client API local">
-  <rect width="182" height="36" rx="15" fill="#2c2114"/>
-  <rect x="1" y="1" width="180" height="34" rx="14" fill="none" stroke="#c8aa6e" stroke-opacity=".8"/>
-  <rect x="14" y="10" width="22" height="16" rx="5" fill="#c8aa6e"/>
-  <text x="45" y="15" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">Riot Live API</text>
-  <text x="45" y="28" fill="#f2dc9f" font-family="Segoe UI, Arial, sans-serif" font-size="9">local game data</text>
-</svg>

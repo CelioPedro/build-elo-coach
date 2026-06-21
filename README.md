@@ -5,17 +5,17 @@
   <p>League of Legends e o primeiro modelo de dominio, com simulacao offline para demonstracao em portfolio.</p>
 
   <p>
-    <img alt="Electron 40 desktop overlay" src="./assets/readme/badges/electron.svg" />
-    <img alt="TypeScript 5.9 typed domain" src="./assets/readme/badges/typescript.svg" />
-    <img alt="Webpack 5 forge bundles" src="./assets/readme/badges/webpack.svg" />
-    <img alt="Jest 29 logic tests" src="./assets/readme/badges/jest.svg" />
+    <img alt="Core Electron 40" src="https://img.shields.io/static/v1?label=Core&message=Electron%2040&color=47848F&style=flat&logo=electron&logoColor=white" />
+    <img alt="Language TypeScript 5.9" src="https://img.shields.io/static/v1?label=Language&message=TypeScript%205.9&color=3178C6&style=flat&logo=typescript&logoColor=white" />
+    <img alt="Bundle Webpack 5" src="https://img.shields.io/static/v1?label=Bundle&message=Webpack%205&color=8DD6F9&style=flat&logo=webpack&logoColor=1C78C0" />
+    <img alt="Tests Jest 29" src="https://img.shields.io/static/v1?label=Tests&message=Jest%2029&color=C21325&style=flat&logo=jest&logoColor=white" />
   </p>
 
   <p>
-    <img alt="ESLint code quality" src="./assets/readme/badges/eslint.svg" />
-    <img alt="Demo offline mock provider" src="./assets/readme/badges/demo.svg" />
-    <img alt="Riot Live Client API local game data" src="./assets/readme/badges/riot-api.svg" />
-    <img alt="License MIT" src="./assets/readme/badges/mit.svg" />
+    <img alt="Quality ESLint" src="https://img.shields.io/static/v1?label=Quality&message=ESLint&color=4B32C3&style=flat&logo=eslint&logoColor=white" />
+    <img alt="Demo mock provider" src="https://img.shields.io/static/v1?label=Demo&message=Mock%20Provider&color=00A98F&style=flat&logo=target&logoColor=white" />
+    <img alt="API Riot Live Client" src="https://img.shields.io/static/v1?label=API&message=Riot%20Live%20Client&color=C8AA6E&style=flat&logo=riotgames&logoColor=white" />
+    <img alt="License MIT" src="https://img.shields.io/static/v1?label=License&message=MIT&color=BE90F2&style=flat&logo=opensourceinitiative&logoColor=white" />
   </p>
 </div>
 
@@ -61,7 +61,7 @@ Este repositorio esta sendo enriquecido como peca de portfolio. A ideia nao e ve
 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" width="34" alt="Node.js" /> | **Node.js** | Runtime do processo principal e integracao com APIs locais. |
 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" width="34" alt="HTML5" /> | **HTML/CSS** | HUD compacto, legivel e pensado para nao atrapalhar a partida. |
 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" width="34" alt="JavaScript" /> | **Interact.js** | Arraste e ajuste dos widgets no overlay. |
-| <img src="./assets/readme/badges/riot-api.svg" width="145" alt="Riot API" /> | **Riot Live Client API** | Fonte local de dados quando o LoL esta em execucao. |
+| <img src="https://img.shields.io/static/v1?label=API&message=Riot%20Live%20Client&color=C8AA6E&style=flat&logo=riotgames&logoColor=white" alt="Riot API" /> | **Riot Live Client API** | Fonte local de dados quando o LoL esta em execucao. |
 
 ## Como rodar
 

@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="176" height="42" viewBox="0 0 176 42" role="img" aria-label="TypeScript 5.9">
-  <rect width="176" height="42" rx="17" fill="#10223a"/>
-  <rect x="1" y="1" width="174" height="40" rx="16" fill="none" stroke="#3178c6" stroke-opacity=".8"/>
-  <rect x="14" y="10" width="24" height="24" rx="6" fill="#3178c6"/>
-  <text x="19" y="27" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="800">TS</text>
-  <text x="50" y="18" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">TypeScript</text>
-  <text x="50" y="31" fill="#9bc7ff" font-family="Segoe UI, Arial, sans-serif" font-size="10">typed domain</text>
-  <text x="141" y="26" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">5.9</text>
-</svg>
