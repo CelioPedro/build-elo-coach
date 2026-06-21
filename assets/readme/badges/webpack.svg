@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="164" height="42" viewBox="0 0 164 42" role="img" aria-label="Webpack 5">
+  <rect width="164" height="42" rx="17" fill="#102436"/>
+  <rect x="1" y="1" width="162" height="40" rx="16" fill="none" stroke="#8dd6f9" stroke-opacity=".75"/>
+  <path d="M26 8l15 8v14l-15 8-15-8V16z" fill="#8dd6f9"/>
+  <path d="M26 13l9 5v8l-9 5-9-5v-8z" fill="#1c78c0"/>
+  <text x="52" y="18" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Webpack</text>
+  <text x="52" y="31" fill="#bdeaff" font-family="Segoe UI, Arial, sans-serif" font-size="10">forge bundles</text>
+  <text x="136" y="26" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">5</text>
+</svg>

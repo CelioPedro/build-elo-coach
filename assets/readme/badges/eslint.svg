@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="36" viewBox="0 0 150 36" role="img" aria-label="ESLint">
+  <rect width="150" height="36" rx="15" fill="#201b3f"/>
+  <rect x="1" y="1" width="148" height="34" rx="14" fill="none" stroke="#6f5bff" stroke-opacity=".75"/>
+  <path d="M25 7l11 6v12l-11 6-11-6V13z" fill="#4b32c3"/>
+  <text x="48" y="15" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">ESLint</text>
+  <text x="48" y="28" fill="#c4bdff" font-family="Segoe UI, Arial, sans-serif" font-size="9">code quality</text>
+</svg>
