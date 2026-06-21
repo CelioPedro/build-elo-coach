@@ -1,6 +1,23 @@
-# EloCoach
+<div align="center">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/electron/electron-original.svg" width="78" alt="Electron" />
+  <h1>EloCoach</h1>
+  <p><strong>Overlay desktop em Electron + TypeScript para apoio tatico em partidas competitivas.</strong></p>
+  <p>League of Legends e o primeiro modelo de dominio, com simulacao offline para demonstracao em portfolio.</p>
 
-Overlay desktop em Electron e TypeScript para apoio tatico em partidas competitivas, usando League of Legends como primeiro modelo de dominio.
+  <p>
+    <img alt="Electron" src="https://img.shields.io/badge/Electron-40.0-47848F?style=for-the-badge&logo=electron&logoColor=white" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+    <img alt="Webpack" src="https://img.shields.io/badge/Webpack-5-8DD6F9?style=for-the-badge&logo=webpack&logoColor=1C78C0" />
+    <img alt="Jest" src="https://img.shields.io/badge/Jest-29-C21325?style=for-the-badge&logo=jest&logoColor=white" />
+  </p>
+
+  <p>
+    <img alt="ESLint" src="https://img.shields.io/badge/ESLint-8-4B32C3?style=flat-square&logo=eslint&logoColor=white" />
+    <img alt="Demo offline" src="https://img.shields.io/badge/Demo-offline-00ffcc?style=flat-square" />
+    <img alt="Riot Live Client API" src="https://img.shields.io/badge/Riot%20Live%20Client%20API-local-785A28?style=flat-square" />
+    <img alt="License" src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" />
+  </p>
+</div>
 
 O projeto nasceu como um experimento antigo com Electron e foi retomado como estudo de produto, arquitetura e regras de negocio para apps sobrepostos a jogos. A versao atual prioriza funcionamento demonstravel sem o jogo instalado, tipagem consistente e uma base expansivel para novos provedores de dados.
 
@@ -24,15 +41,27 @@ Este repositorio esta sendo enriquecido como peca de portfolio. A ideia nao e ve
 - regras de negocio devem considerar tempo de partida, telemetria incerta e fases do jogo;
 - o projeto precisa funcionar em modo demo para avaliacao sem League of Legends instalado.
 
+## Destaques tecnicos
+
+- **Electron como tecnologia central:** janela transparente, always-on-top, click-through e integracao entre processo principal, preload e renderer.
+- **TypeScript de ponta a ponta:** contratos compartilhados entre provider, dominio, IPC e HUD.
+- **Simulacao offline:** provider mockado para demonstrar uma partida sem depender do League of Legends instalado.
+- **Logica tatico-competitiva:** heuristicas para risco de gank, timers de objetivos, rotacoes, matchups e sinais de mapa.
+- **Base testavel:** regras de negocio isoladas da UI e cobertas por Jest.
+
 ## Stack
 
-- Electron Forge
-- TypeScript
-- Webpack
-- Jest
-- ESLint
-- Interact.js
-- Riot Live Client API
+| Icone | Tecnologia | Papel no projeto |
+| --- | --- | --- |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/electron/electron-original.svg" width="34" alt="Electron" /> | **Electron / Electron Forge** | Base do app desktop, empacotamento, janela transparente e overlay sobre o jogo. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" width="34" alt="TypeScript" /> | **TypeScript** | Tipagem dos contratos, providers, regras de negocio e renderer. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/webpack/webpack-original.svg" width="34" alt="Webpack" /> | **Webpack** | Bundles do processo principal, preload e renderer via Electron Forge. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jest/jest-plain.svg" width="34" alt="Jest" /> | **Jest** | Testes unitarios das heuristicas e modelos de dominio. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/eslint/eslint-original.svg" width="34" alt="ESLint" /> | **ESLint** | Qualidade e consistencia do codigo TypeScript. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" width="34" alt="Node.js" /> | **Node.js** | Runtime do processo principal e integracao com APIs locais. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" width="34" alt="HTML5" /> | **HTML/CSS** | HUD compacto, legivel e pensado para nao atrapalhar a partida. |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" width="34" alt="JavaScript" /> | **Interact.js** | Arraste e ajuste dos widgets no overlay. |
+| <img src="https://img.shields.io/badge/Riot-API-D32936?style=flat-square" alt="Riot API" /> | **Riot Live Client API** | Fonte local de dados quando o LoL esta em execucao. |
 
 ## Como rodar
 
@@ -74,9 +103,9 @@ npm run lint
 
 ## Controles
 
-- `Ctrl+Shift+E`: alterna o modo edicao do overlay.
-- Fora do modo edicao, o overlay fica click-through para nao interceptar o mouse.
-- No modo edicao, os widgets exibem realce visual e podem ser arrastados pela area superior.
+- Arraste os widgets pela borda do HUD.
+- O conteudo do overlay permanece click-through para nao interceptar cliques durante a partida.
+- `Ctrl+Shift+E` alterna um modo de edicao/diagnostico para inspecao do overlay.
 
 ## Arquitetura
 
@@ -112,8 +141,9 @@ O projeto ja possui:
 - demo offline funcional;
 - contratos IPC tipados;
 - tratamento de telemetria indisponivel;
-- HUD compacto;
-- modo edicao seguro;
+- HUD compacto com timer de partida, alertas contextuais, objetivos situacionais e sinais de rotacao;
+- arraste dos widgets pela borda;
+- simulacao mockada para apresentar uma partida sem depender do jogo instalado;
 - cobertura de testes para os principais modulos de regra.
 
 ## Proximos passos planejados
